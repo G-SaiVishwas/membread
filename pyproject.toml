@@ -1,0 +1,87 @@
+[project]
+name = "chronos-mcp"
+version = "0.1.0"
+description = "Universal Temporal-Aware Memory Layer for AI Agents"
+authors = [
+    {name = "ChronosMCP Team"}
+]
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+
+dependencies = [
+    "asyncpg>=0.29.0",
+    "pgvector>=0.2.4",
+    "mcp>=0.9.0",
+    "pydantic>=2.5.0",
+    "openai>=1.10.0",
+    "pyjwt>=2.8.0",
+    "cryptography>=41.0.0",
+    "aiosqlite>=0.19.0",
+    "tiktoken>=0.5.2",
+    "python-dotenv>=1.0.0",
+    "structlog>=24.1.0",
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+    "hypothesis>=6.92.0",
+    "black>=23.12.0",
+    "ruff>=0.1.9",
+    "mypy>=1.8.0",
+]
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "property_test: Property-based tests using Hypothesis",
+    "benchmark: Benchmark tests (Hydra, Vegetarian Trap)",
+    "integration: Integration tests requiring full system",
+]
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["tests/*", "**/__pycache__/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]

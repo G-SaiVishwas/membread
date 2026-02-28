@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: chronos-postgres
+    environment:
+      POSTGRES_DB: chronos
+      POSTGRES_USER: chronos
+      POSTGRES_PASSWORD: chronos_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chronos"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  chronos-mcp:
+    build: .
+    container_name: chronos-mcp
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://chronos:chronos_password@postgres:5432/chronos
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-key-change-in-production}
+      LOG_LEVEL: INFO
+      LOG_FORMAT: json
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./src:/app/src
+      - ./schema.sql:/app/schema.sql
+
+  chronos-api:
+    build: .
+    container_name: chronos-api
+    command: python -m src.api_main
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://chronos:chronos_password@postgres:5432/chronos
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-key-change-in-production}
+      LOG_LEVEL: INFO
+      LOG_FORMAT: json
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./src:/app/src
+      - ./schema.sql:/app/schema.sql
+
+  chronos-frontend:
+    image: nginx:alpine
+    container_name: chronos-frontend
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+
+volumes:
+  postgres_data:
