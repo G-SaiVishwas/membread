@@ -13,7 +13,8 @@ import hashlib
 import hmac
 import logging
 import os
-from typing import Any, Callable, Awaitable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from src.connectors.db import ConnectorDB
 from src.connectors.providers.base import BaseProvider, MemoryItem

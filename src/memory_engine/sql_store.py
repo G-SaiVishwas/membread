@@ -1,13 +1,11 @@
 """SQL Store: Relational storage for user profiles with Row-Level Security."""
 
-import asyncpg
-from datetime import datetime
-from typing import Optional
 from uuid import UUID
+
+import asyncpg
 import structlog
 
-from src.models import UserProfile, PrivilegeLayer
-from src.database import db_pool
+from src.models import PrivilegeLayer, UserProfile
 
 logger = structlog.get_logger()
 
@@ -27,7 +25,7 @@ class SQLStore:
 
     async def get_profile(
         self, tenant_id: str, user_id: str
-    ) -> Optional[UserProfile]:
+    ) -> UserProfile | None:
         """
         Retrieve user profile with RLS enforcement.
 
@@ -45,7 +43,7 @@ class SQLStore:
 
                 row = await conn.fetchrow(
                     """
-                    SELECT tenant_id, user_id, display_name, preferences, 
+                    SELECT tenant_id, user_id, display_name, preferences,
                            created_at, updated_at
                     FROM users
                     WHERE tenant_id = $1 AND user_id = $2
@@ -80,7 +78,7 @@ class SQLStore:
         tenant_id: str,
         user_id: str,
         display_name: str,
-        preferences: Optional[dict] = None,
+        preferences: dict | None = None,
     ) -> UserProfile:
         """
         Create a new user profile.
@@ -109,7 +107,7 @@ class SQLStore:
                     SET display_name = EXCLUDED.display_name,
                         preferences = EXCLUDED.preferences,
                         updated_at = NOW()
-                    RETURNING tenant_id, user_id, display_name, preferences, 
+                    RETURNING tenant_id, user_id, display_name, preferences,
                               created_at, updated_at
                     """,
                     UUID(tenant_id),
@@ -277,8 +275,8 @@ class SQLStore:
     async def get_audit_logs(
         self,
         tenant_id: str,
-        user_id: Optional[str] = None,
-        operation: Optional[str] = None,
+        user_id: str | None = None,
+        operation: str | None = None,
         limit: int = 100,
     ) -> list[dict]:
         """

@@ -5,8 +5,8 @@ Coupa, Ironclad, Magento, Twilio Flex.
 """
 
 import logging
-from datetime import datetime, timedelta, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import httpx
 
@@ -47,7 +47,7 @@ class UiPathProvider(BaseProvider):
 
         async with httpx.AsyncClient(timeout=30) as client:
             # Recent jobs
-            since = cursor or (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat()
+            since = cursor or (datetime.now(UTC) - timedelta(hours=2)).isoformat()
             resp = await client.get(
                 f"{base_url}/odata/Jobs",
                 params={
@@ -79,7 +79,7 @@ class UiPathProvider(BaseProvider):
                         timestamp=job.get("EndTime"),
                     ))
 
-        return items, datetime.now(timezone.utc).isoformat()
+        return items, datetime.now(UTC).isoformat()
 
     async def transform_webhook(
         self,
@@ -124,7 +124,10 @@ class AutomationAnywhereProvider(BaseProvider):
         async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.post(
                 f"{base_url}/v3/activity/list",
-                json={"sort": [{"field": "modifiedOn", "direction": "desc"}], "page": {"length": 50}},
+                json={
+                    "sort": [{"field": "modifiedOn", "direction": "desc"}],
+                    "page": {"length": 50},
+                },
                 headers=headers,
             )
             if resp.status_code == 200:
@@ -144,7 +147,7 @@ class AutomationAnywhereProvider(BaseProvider):
                         timestamp=activity.get("modifiedOn"),
                     ))
 
-        return items, datetime.now(timezone.utc).isoformat()
+        return items, datetime.now(UTC).isoformat()
 
     async def transform_webhook(
         self,
@@ -183,17 +186,28 @@ class SAPProvider(BaseProvider):
         if not base_url:
             return items, cursor
 
-        headers = {"Authorization": f"Bearer {api_key or access_token}", "Accept": "application/json"}
+        headers = {
+            "Authorization": f"Bearer {api_key or access_token}",
+            "Accept": "application/json",
+        }
         async with httpx.AsyncClient(timeout=30) as client:
             # Purchase orders via OData
             resp = await client.get(
                 f"{base_url}/sap/opu/odata/sap/API_PURCHASEORDER_PROCESS_SRV/A_PurchaseOrder",
-                params={"$top": 50, "$orderby": "LastChangeDateTime desc", "$format": "json"},
+                params={
+                    "$top": 50,
+                    "$orderby": "LastChangeDateTime desc",
+                    "$format": "json",
+                },
                 headers=headers,
             )
             if resp.status_code == 200:
                 for po in resp.json().get("d", {}).get("results", []):
-                    text = f"SAP PO {po.get('PurchaseOrder', '')}: {po.get('CompanyCode', '')} — {po.get('PurchasingOrganization', '')}"
+                    text = (
+                        f"SAP PO {po.get('PurchaseOrder', '')}: "
+                        f"{po.get('CompanyCode', '')} — "
+                        f"{po.get('PurchasingOrganization', '')}"
+                    )
                     items.append(self._make_memory(
                         text=text,
                         source_id=f"sap-po-{po.get('PurchaseOrder', '')}",
@@ -206,7 +220,7 @@ class SAPProvider(BaseProvider):
                         timestamp=po.get("LastChangeDateTime"),
                     ))
 
-        return items, datetime.now(timezone.utc).isoformat()
+        return items, datetime.now(UTC).isoformat()
 
     async def transform_webhook(
         self,
@@ -246,11 +260,17 @@ class OracleSCMProvider(BaseProvider):
         if not base_url:
             return items, cursor
 
-        headers = {"Authorization": f"Bearer {api_key or access_token}", "Accept": "application/json"}
+        headers = {
+            "Authorization": f"Bearer {api_key or access_token}",
+            "Accept": "application/json",
+        }
         async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.get(
                 f"{base_url}/fscmRestApi/resources/latest/purchaseOrders",
-                params={"limit": 50, "orderBy": "LastUpdateDate:desc"},
+                params={
+                    "limit": 50,
+                    "orderBy": "LastUpdateDate:desc",
+                },
                 headers=headers,
             )
             if resp.status_code == 200:
@@ -260,11 +280,14 @@ class OracleSCMProvider(BaseProvider):
                         text=text,
                         source_id=f"oracle-po-{po.get('POHeaderId', '')}",
                         entity_type="purchase_order",
-                        metadata={"order_number": po.get("OrderNumber"), "status": po.get("Status")},
+                        metadata={
+                            "order_number": po.get("OrderNumber"),
+                            "status": po.get("Status"),
+                        },
                         timestamp=po.get("LastUpdateDate"),
                     ))
 
-        return items, datetime.now(timezone.utc).isoformat()
+        return items, datetime.now(UTC).isoformat()
 
     async def transform_webhook(
         self,
@@ -305,15 +328,26 @@ class CoupaProvider(BaseProvider):
 
         headers = {"X-COUPA-API-KEY": api_key, "Accept": "application/json"}
         async with httpx.AsyncClient(timeout=30) as client:
-            since = cursor or (datetime.now(timezone.utc) - timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%SZ")
+            since = cursor or (
+                datetime.now(UTC) - timedelta(hours=2)
+            ).strftime("%Y-%m-%dT%H:%M:%SZ")
             resp = await client.get(
                 f"{base_url}/api/purchase_orders",
-                params={"updated_at[gt]": since, "limit": 50, "order_by": "updated_at", "dir": "desc"},
+                params={
+                    "updated_at[gt]": since,
+                    "limit": 50,
+                    "order_by": "updated_at",
+                    "dir": "desc",
+                },
                 headers=headers,
             )
             if resp.status_code == 200:
                 for po in resp.json():
-                    text = f"Coupa PO #{po.get('po_number', '')}: {po.get('status', '')} — ${po.get('total', 0)}"
+                    text = (
+                        f"Coupa PO #{po.get('po_number', '')}: "
+                        f"{po.get('status', '')} — "
+                        f"${po.get('total', 0)}"
+                    )
                     items.append(self._make_memory(
                         text=text,
                         source_id=f"coupa-po-{po.get('id', '')}",
@@ -327,7 +361,7 @@ class CoupaProvider(BaseProvider):
                         timestamp=po.get("updated_at"),
                     ))
 
-        return items, datetime.now(timezone.utc).isoformat()
+        return items, datetime.now(UTC).isoformat()
 
     async def transform_webhook(
         self,
@@ -370,7 +404,11 @@ class IroncladProvider(BaseProvider):
             params = {"page": 0, "pageSize": 50}
             if cursor:
                 params["lastUpdated"] = cursor
-            resp = await client.get("https://ironcladapp.com/public/api/v1/workflows", params=params, headers=headers)
+            resp = await client.get(
+                "https://ironcladapp.com/public/api/v1/workflows",
+                params=params,
+                headers=headers,
+            )
             if resp.status_code == 200:
                 data = resp.json()
                 for wf in data.get("list", data.get("records", [])):
@@ -389,7 +427,7 @@ class IroncladProvider(BaseProvider):
                         timestamp=wf.get("lastUpdated"),
                     ))
 
-        return items, datetime.now(timezone.utc).isoformat()
+        return items, datetime.now(UTC).isoformat()
 
     async def transform_webhook(
         self,
@@ -430,7 +468,9 @@ class MagentoProvider(BaseProvider):
         if not base_url or not api_key:
             return items, cursor
 
-        since = cursor or (datetime.now(timezone.utc) - timedelta(hours=1)).strftime("%Y-%m-%d %H:%M:%S")
+        since = cursor or (
+            datetime.now(UTC) - timedelta(hours=1)
+        ).strftime("%Y-%m-%d %H:%M:%S")
         headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
         async with httpx.AsyncClient(timeout=30) as client:
@@ -448,7 +488,11 @@ class MagentoProvider(BaseProvider):
             )
             if resp.status_code == 200:
                 for order in resp.json().get("items", []):
-                    text = f"Magento Order #{order.get('increment_id', '')}: {order.get('status', '')} — ${order.get('grand_total', 0)}"
+                    text = (
+                        f"Magento Order #{order.get('increment_id', '')}: "
+                        f"{order.get('status', '')} — "
+                        f"${order.get('grand_total', 0)}"
+                    )
                     customer = order.get("customer_email", "")
                     if customer:
                         text += f" ({customer})"
@@ -467,7 +511,7 @@ class MagentoProvider(BaseProvider):
                         timestamp=order.get("updated_at"),
                     ))
 
-        return items, datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+        return items, datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
 
     async def transform_webhook(
         self,
@@ -510,9 +554,11 @@ class TwilioFlexProvider(BaseProvider):
 
         auth = (account_sid, auth_token)
         async with httpx.AsyncClient(timeout=30, auth=auth) as client:
-            since = cursor or (datetime.now(timezone.utc) - timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+            since = cursor or (
+                datetime.now(UTC) - timedelta(hours=1)
+            ).strftime("%Y-%m-%dT%H:%M:%SZ")
             resp = await client.get(
-                f"https://flex-api.twilio.com/v1/interactions",
+                "https://flex-api.twilio.com/v1/interactions",
                 params={"DateCreatedAfter": since, "PageSize": 50},
             )
             if resp.status_code == 200:
@@ -531,7 +577,7 @@ class TwilioFlexProvider(BaseProvider):
                         timestamp=interaction.get("date_created"),
                     ))
 
-        return items, datetime.now(timezone.utc).isoformat()
+        return items, datetime.now(UTC).isoformat()
 
     async def transform_webhook(
         self,

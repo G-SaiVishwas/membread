@@ -6,11 +6,10 @@ Captures candidates, applications, and hiring events.
 import hashlib
 import hmac
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import httpx
-
-from typing import Any
 
 from src.connectors.providers.base import BaseProvider, MemoryItem
 
@@ -43,7 +42,9 @@ class GreenhouseProvider(BaseProvider):
         if not api_key:
             return items, cursor
 
-        since = cursor or (datetime.now(timezone.utc) - timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        since = cursor or (
+            datetime.now(UTC) - timedelta(hours=2)
+        ).strftime("%Y-%m-%dT%H:%M:%SZ")
         auth = (api_key, "")  # Basic auth with API key as username
 
         async with httpx.AsyncClient(timeout=30, auth=auth) as client:
@@ -106,7 +107,7 @@ class GreenhouseProvider(BaseProvider):
                         timestamp=app.get("last_activity_at"),
                     ))
 
-        return items, datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        return items, datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     def verify_webhook(self, headers: dict[str, Any], body: bytes, secret: str) -> bool:
         sig = headers.get("signature", "")

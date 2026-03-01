@@ -5,8 +5,7 @@ Users configure Zapier to POST to our webhook URL.
 """
 
 import logging
-from datetime import datetime, timezone
-
+from datetime import UTC, datetime
 from typing import Any
 
 from src.connectors.providers.base import BaseProvider, MemoryItem
@@ -54,15 +53,20 @@ class ZapierProvider(BaseProvider):
         # Include key data fields
         data_fields = {k: v for k, v in payload.items()
                        if k not in ("zap_name", "zap", "trigger_app", "source", "action", "event")
-                       and isinstance(v, (str, int, float, bool))}
+                       and isinstance(v, str | int | float | bool)}
         if data_fields:
-            text_parts.append("Data: " + ", ".join(f"{k}={v}" for k, v in list(data_fields.items())[:10]))
+            text_parts.append(
+                "Data: " + ", ".join(
+                    f"{k}={v}"
+                    for k, v in list(data_fields.items())[:10]
+                )
+            )
 
         text = " | ".join(text_parts)
 
         items.append(self._make_memory(
             text=text,
-            source_id=f"zapier-{payload.get('id', datetime.now(timezone.utc).timestamp())}",
+            source_id=f"zapier-{payload.get('id', datetime.now(UTC).timestamp())}",
             entity_type="automation_event",
             metadata={
                 "zap_name": zap_name,

@@ -2,7 +2,7 @@
 
 import structlog
 
-from src.models import Operation, RoutingDecision, PrivilegeLayer
+from src.models import Operation, PrivilegeLayer, RoutingDecision
 
 logger = structlog.get_logger()
 

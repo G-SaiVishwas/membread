@@ -1,21 +1,22 @@
 """Main entry point for Membread server."""
 
 import asyncio
+
 import structlog
 from structlog.stdlib import LoggerFactory
 
+from src.auth.jwt_authenticator import JWTAuthenticator
 from src.config import config
 from src.database import db_pool
-from src.memory_engine.vector_store import VectorStore
-from src.memory_engine.graph_store import GraphStore
-from src.memory_engine.sql_store import SQLStore
-from src.memory_engine.memory_engine import MemoryEngine
-from src.memory_engine.engines.graphiti_engine import GraphitiEngine
-from src.services.embedding_service import EmbeddingService
-from src.services.context_compressor import ContextCompressor
 from src.governor.governor import Governor
-from src.auth.jwt_authenticator import JWTAuthenticator
 from src.mcp_server.server import MCPServer
+from src.memory_engine.engines.graphiti_engine import GraphitiEngine
+from src.memory_engine.graph_store import GraphStore
+from src.memory_engine.memory_engine import MemoryEngine
+from src.memory_engine.sql_store import SQLStore
+from src.memory_engine.vector_store import VectorStore
+from src.services.context_compressor import ContextCompressor
+from src.services.embedding_service import EmbeddingService
 
 # Configure structured logging
 structlog.configure(
@@ -28,7 +29,9 @@ structlog.configure(
         structlog.processors.StackInfoRenderer(),
         structlog.processors.format_exc_info,
         structlog.processors.UnicodeDecoder(),
-        structlog.processors.JSONRenderer() if config.log_format == "json" else structlog.dev.ConsoleRenderer(),
+        structlog.processors.JSONRenderer()
+        if config.log_format == "json"
+        else structlog.dev.ConsoleRenderer(),
     ],
     context_class=dict,
     logger_factory=LoggerFactory(),

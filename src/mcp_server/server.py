@@ -1,17 +1,16 @@
 """MCP Server implementation."""
 
-import asyncio
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
+
 import structlog
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
-from mcp.types import Tool, TextContent
+from mcp.types import TextContent, Tool
 
+from src.auth.jwt_authenticator import JWTAuthenticator
 from src.memory_engine.memory_engine import MemoryEngine
 from src.memory_engine.sql_store import SQLStore
-from src.auth.jwt_authenticator import JWTAuthenticator
-from src.models import AuthenticationError, ProfileResult
 
 logger = structlog.get_logger()
 

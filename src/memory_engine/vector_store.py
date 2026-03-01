@@ -1,8 +1,8 @@
 """Vector Store: Semantic embedding storage using PostgreSQL pgvector."""
 
+from uuid import UUID
+
 import asyncpg
-from typing import Optional
-from uuid import UUID, uuid4
 import structlog
 
 from src.models import SearchResult
@@ -84,9 +84,9 @@ class VectorStore:
         self,
         query_embedding: list[float],
         tenant_id: str,
-        user_id: Optional[str] = None,
+        user_id: str | None = None,
         top_k: int = 10,
-        metadata_filter: Optional[dict] = None,
+        metadata_filter: dict | None = None,
     ) -> list[SearchResult]:
         """
         Perform semantic similarity search with filtering.
@@ -107,7 +107,7 @@ class VectorStore:
 
                 # Build query with optional filters
                 query = """
-                    SELECT id, text, metadata, 
+                    SELECT id, text, metadata,
                            1 - (embedding <=> $1) as score
                     FROM embeddings
                     WHERE tenant_id = $2
@@ -204,7 +204,7 @@ class VectorStore:
             )
             raise
 
-    async def get_embedding_count(self, tenant_id: str, user_id: Optional[str] = None) -> int:
+    async def get_embedding_count(self, tenant_id: str, user_id: str | None = None) -> int:
         """
         Get count of embeddings for a tenant/user.
 
@@ -250,7 +250,7 @@ class VectorStore:
     async def list_embeddings(
         self,
         tenant_id: str,
-        user_id: Optional[str] = None,
+        user_id: str | None = None,
         limit: int = 50,
     ) -> list[SearchResult]:
         """

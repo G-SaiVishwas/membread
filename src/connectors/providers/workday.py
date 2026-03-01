@@ -4,14 +4,12 @@ Captures HR events, worker data, and workforce analytics.
 """
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import Any
 
 import httpx
 
-from typing import Any
-
 from src.connectors.oauth import OAuthConfig
-
 from src.connectors.providers.base import BaseProvider, MemoryItem
 
 logger = logging.getLogger("membread.providers.workday")
@@ -61,7 +59,7 @@ class WorkdayProvider(BaseProvider):
                         metadata={"workday_id": worker.get("id"), "name": name},
                         timestamp=worker.get("lastModified"),
                     ))
-        return items, datetime.now(timezone.utc).isoformat()
+        return items, datetime.now(UTC).isoformat()
 
     async def transform_webhook(
         self,

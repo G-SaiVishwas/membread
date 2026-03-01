@@ -6,14 +6,12 @@ Captures contract signing events, agreement status, and envelope updates.
 import hashlib
 import hmac
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+from typing import Any, cast
 
 import httpx
 
-from typing import Any, cast
-
 from src.connectors.oauth import OAuthConfig
-
 from src.connectors.providers.base import BaseProvider, MemoryItem
 
 logger = logging.getLogger("membread.providers.docusign")
@@ -62,7 +60,9 @@ class DocuSignProvider(BaseProvider):
             return items, cursor
 
         base_url = (config or {}).get("base_url", DOCUSIGN_API)
-        since = cursor or (datetime.now(timezone.utc) - timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        since = cursor or (
+            datetime.now(UTC) - timedelta(hours=2)
+        ).strftime("%Y-%m-%dT%H:%M:%SZ")
         headers = {"Authorization": f"Bearer {access_token}"}
 
         async with httpx.AsyncClient(timeout=30) as client:
@@ -99,13 +99,22 @@ class DocuSignProvider(BaseProvider):
                             "sent_date": env.get("sentDateTime"),
                             "completed_date": env.get("completedDateTime"),
                         },
-                        timestamp=env.get("statusChangedDateTime") or env.get("lastModifiedDateTime"),
+                        timestamp=(
+                            env.get("statusChangedDateTime")
+                            or env.get("lastModifiedDateTime")
+                        ),
                     ))
 
-        new_cursor = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        new_cursor = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         return items, new_cursor
 
-    async def on_connected(self, tenant_id: str, access_token: str | None = None, api_key: str | None = None, config: dict[str, Any] | None = None) -> dict[str, Any] | None:
+    async def on_connected(
+        self,
+        tenant_id: str,
+        access_token: str | None = None,
+        api_key: str | None = None,
+        config: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
         """Fetch account ID and base URL from DocuSign userinfo."""
         if not access_token:
             return None

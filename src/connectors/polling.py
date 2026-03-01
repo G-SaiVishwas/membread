@@ -12,7 +12,9 @@ Runs as an asyncio background task that:
 import asyncio
 import logging
 import time
-from typing import Any, Callable, Awaitable
+from collections.abc import Awaitable, Callable
+from datetime import UTC
+from typing import Any
 
 from src.connectors.db import ConnectorDB
 from src.connectors.providers.base import BaseProvider, MemoryItem
@@ -83,7 +85,9 @@ class PollingScheduler:
 
             await asyncio.sleep(self.poll_check_interval)
 
-    async def _poll_with_semaphore(self, sem: asyncio.Semaphore, cursor_row: dict[str, Any]) -> None:
+    async def _poll_with_semaphore(
+        self, sem: asyncio.Semaphore, cursor_row: dict[str, Any],
+    ) -> None:
         async with sem:
             await self._execute_poll(cursor_row)
 
@@ -113,11 +117,11 @@ class PollingScheduler:
 
             # Check if token needs refresh
             if tokens.get("token_expires_at"):
-                from datetime import datetime, timedelta, timezone
+                from datetime import datetime, timedelta
                 expires = tokens["token_expires_at"]
                 if isinstance(expires, str):
                     expires = datetime.fromisoformat(expires)
-                if expires <= datetime.now(timezone.utc) + timedelta(minutes=2):
+                if expires <= datetime.now(UTC) + timedelta(minutes=2):
                     if self.refresh_token:
                         new_token = await self.refresh_token(tenant_id, connector_id)
                         if new_token:
@@ -221,4 +225,8 @@ class PollingScheduler:
             items_fetched=0,
             poll_interval=provider.poll_interval_seconds,
         )
-        logger.info("Polling initialized for %s:%s (every %ds)", tenant_id, connector_id, provider.poll_interval_seconds)
+        logger.info(
+            "Polling initialized for %s:%s (every %ds)",
+            tenant_id, connector_id,
+            provider.poll_interval_seconds,
+        )

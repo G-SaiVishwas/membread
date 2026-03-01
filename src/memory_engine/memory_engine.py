@@ -6,30 +6,29 @@ fully backward-compatible; temporal features are additive.
 """
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
+
 import structlog
 
-from src.config import config as app_config
-from src.memory_engine.vector_store import VectorStore
-from src.memory_engine.graph_store import GraphStore
-from src.memory_engine.sql_store import SQLStore
+from src.governor.governor import Governor
 from src.memory_engine.engines.graphiti_engine import (
+    EntityVersion,
     GraphitiEngine,
     TemporalSearchResult,
-    EntityVersion,
 )
-from src.services.embedding_service import EmbeddingService
-from src.services.circuit_breaker import CircuitBreaker
-from src.services.context_compressor import ContextCompressor
-from src.governor.governor import Governor
+from src.memory_engine.graph_store import GraphStore
+from src.memory_engine.sql_store import SQLStore
+from src.memory_engine.vector_store import VectorStore
 from src.models import (
-    StoreResult,
-    RecallResult,
-    Fact,
     Operation,
     PrivilegeLayer,
+    RecallResult,
+    StoreResult,
     ValidationError,
 )
+from src.services.circuit_breaker import CircuitBreaker
+from src.services.context_compressor import ContextCompressor
+from src.services.embedding_service import EmbeddingService
 
 logger = structlog.get_logger()
 
@@ -119,7 +118,7 @@ class MemoryEngine:
             # Extract entities and create graph nodes
             # Simplified: Create a single node for the observation
             entity_id = f"obs_{embedding_id}"
-            node_id = await self.graph_store.create_node(
+            _node_id = await self.graph_store.create_node(
                 entity_id=entity_id,
                 entity_type="observation",
                 properties={"text": observation, "metadata": metadata},
@@ -178,7 +177,7 @@ class MemoryEngine:
         query: str,
         tenant_id: str,
         user_id: str,
-        time_travel_ts: Optional[datetime] = None,
+        time_travel_ts: datetime | None = None,
         max_tokens: int = 2000,
     ) -> RecallResult:
         """

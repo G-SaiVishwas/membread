@@ -1,11 +1,11 @@
 """Conflict resolver for temporal conflicts."""
 
 from datetime import datetime
-from typing import List
+
 import structlog
 
-from src.models import Fact, ConflictResolution, GraphNode, GraphRelationship
 from src.memory_engine.graph_store import GraphStore
+from src.models import ConflictResolution, Fact, GraphNode, GraphRelationship
 
 logger = structlog.get_logger()
 

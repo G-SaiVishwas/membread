@@ -1,10 +1,10 @@
 """Lattice crawler for multi-hop graph traversal."""
 
-from typing import List, Optional, Set
+
 import structlog
 
-from src.models import GraphPath, GraphNode, GraphRelationship
 from src.memory_engine.graph_store import GraphStore
+from src.models import GraphNode, GraphPath, GraphRelationship
 
 logger = structlog.get_logger()
 
@@ -20,10 +20,10 @@ class LatticeCrawler:
     async def multi_hop_traverse(
         self,
         start_entity: str,
-        relationship_types: List[str],
+        relationship_types: list[str],
         max_hops: int,
         tenant_id: str,
-    ) -> List[GraphPath]:
+    ) -> list[GraphPath]:
         """
         Perform multi-hop reasoning across graph relationships.
 
@@ -36,8 +36,8 @@ class LatticeCrawler:
         Returns:
             List of graph paths with entities and relationships
         """
-        paths: List[GraphPath] = []
-        visited: Set[str] = set()
+        paths: list[GraphPath] = []
+        visited: set[str] = set()
 
         # Get starting nodes
         start_nodes = await self.graph_store.get_current_nodes(
@@ -75,13 +75,13 @@ class LatticeCrawler:
     async def _bfs_traverse(
         self,
         node: GraphNode,
-        relationship_types: List[str],
+        relationship_types: list[str],
         max_hops: int,
         current_hop: int,
-        current_path_entities: List[GraphNode],
-        current_path_rels: List[GraphRelationship],
-        visited: Set[str],
-        paths: List[GraphPath],
+        current_path_entities: list[GraphNode],
+        current_path_rels: list[GraphRelationship],
+        visited: set[str],
+        paths: list[GraphPath],
     ) -> None:
         """Recursive BFS traversal."""
         if current_hop >= max_hops:

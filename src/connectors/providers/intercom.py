@@ -6,15 +6,12 @@ Captures customer conversations, contacts, and support events.
 import hashlib
 import hmac
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import httpx
 
-from typing import Any
-
 from src.connectors.oauth import OAuthConfig
-from typing import Any
-
 from src.connectors.providers.base import BaseProvider, MemoryItem
 
 logger = logging.getLogger("membread.providers.intercom")
@@ -64,7 +61,9 @@ class IntercomProvider(BaseProvider):
         }
 
         # Cursor is a unix timestamp
-        since_ts = int(cursor) if cursor else int((datetime.now(timezone.utc) - timedelta(hours=1)).timestamp())
+        since_ts = int(cursor) if cursor else int(
+            (datetime.now(UTC) - timedelta(hours=1)).timestamp()
+        )
 
         async with httpx.AsyncClient(timeout=30) as client:
             # Poll recent conversations
@@ -100,10 +99,15 @@ class IntercomProvider(BaseProvider):
                             "state": state,
                             "priority": conv.get("priority", ""),
                             "assignee_type": conv.get("assignee", {}).get("type", ""),
-                            "tags": [t.get("name", "") for t in conv.get("tags", {}).get("tags", [])],
+                            "tags": [
+                                t.get("name", "")
+                                for t in conv.get("tags", {}).get("tags", [])
+                            ],
                             "statistics": conv.get("statistics", {}),
                         },
-                        timestamp=datetime.fromtimestamp(conv.get("updated_at", 0)).isoformat(),
+                        timestamp=datetime.fromtimestamp(
+                            conv.get("updated_at", 0),
+                        ).isoformat(),
                     ))
 
             # Poll contacts
@@ -143,7 +147,7 @@ class IntercomProvider(BaseProvider):
                         timestamp=datetime.fromtimestamp(contact.get("updated_at", 0)).isoformat(),
                     ))
 
-        new_cursor = str(int(datetime.now(timezone.utc).timestamp()))
+        new_cursor = str(int(datetime.now(UTC).timestamp()))
         return items, new_cursor
 
     async def register_webhook(

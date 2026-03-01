@@ -1,12 +1,12 @@
 """Embedding service for generating semantic vectors."""
 
 import asyncio
-from typing import List
+
 import structlog
 from openai import AsyncOpenAI
 
 from src.config import config
-from src.models import RetryableError, MaxRetriesExceededError
+from src.models import MaxRetriesExceededError
 
 logger = structlog.get_logger()
 

@@ -6,7 +6,7 @@ Captures incidents, escalations, and resolution events.
 import hashlib
 import hmac
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import httpx
@@ -54,7 +54,7 @@ class PagerDutyProvider(BaseProvider):
     ) -> tuple[list[MemoryItem], str | None]:
         items: list[MemoryItem] = []
         token = access_token or api_key
-        since = cursor or (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat()
+        since = cursor or (datetime.now(UTC) - timedelta(hours=2)).isoformat()
         headers = {
             "Authorization": f"Bearer {token}" if access_token else f"Token token={api_key}",
             "Content-Type": "application/json",
@@ -92,8 +92,14 @@ class PagerDutyProvider(BaseProvider):
                             "urgency": urgency,
                             "status": status,
                             "service": service,
-                            "escalation_policy": inc.get("escalation_policy", {}).get("summary", ""),
-                            "assignments": [a.get("assignee", {}).get("summary", "") for a in inc.get("assignments", [])],
+                            "escalation_policy": (
+                                inc.get("escalation_policy", {})
+                                .get("summary", "")
+                            ),
+                            "assignments": [
+                                a.get("assignee", {}).get("summary", "")
+                                for a in inc.get("assignments", [])
+                            ],
                         },
                         timestamp=inc.get("created_at"),
                     ))
@@ -107,10 +113,19 @@ class PagerDutyProvider(BaseProvider):
             if resp.status_code == 200:
                 for entry in resp.json().get("log_entries", []):
                     entry_type = entry.get("type", "")
-                    if entry_type in ("acknowledge_log_entry", "resolve_log_entry", "escalate_log_entry"):
+                    if entry_type in (
+                        "acknowledge_log_entry",
+                        "resolve_log_entry",
+                        "escalate_log_entry",
+                    ):
                         incident = entry.get("incident", {})
-                        agent = entry.get("agent", {}).get("summary", "System")
-                        text = f"PD {entry_type.replace('_log_entry', '')}: {incident.get('summary', '')} by {agent}"
+                        agent = entry.get("agent", {}).get(
+                            "summary", "System",
+                        )
+                        text = (
+                            f"PD {entry_type.replace('_log_entry', '')}: "
+                            f"{incident.get('summary', '')} by {agent}"
+                        )
                         items.append(self._make_memory(
                             text=text,
                             source_id=f"pd-log-{entry['id']}",
@@ -123,7 +138,7 @@ class PagerDutyProvider(BaseProvider):
                             timestamp=entry.get("created_at"),
                         ))
 
-        new_cursor = datetime.now(timezone.utc).isoformat()
+        new_cursor = datetime.now(UTC).isoformat()
         return items, new_cursor
 
     async def register_webhook(

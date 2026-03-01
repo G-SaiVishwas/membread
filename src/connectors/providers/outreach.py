@@ -4,15 +4,12 @@ Captures sales engagement sequences, prospects, and email activity.
 """
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import httpx
 
-from typing import Any
-
 from src.connectors.oauth import OAuthConfig
-from typing import Any
-
 from src.connectors.providers.base import BaseProvider, MemoryItem
 
 logger = logging.getLogger("membread.providers.outreach")
@@ -45,14 +42,21 @@ class OutreachProvider(BaseProvider):
         config: dict[str, Any] | None = None,
     ) -> tuple[list[MemoryItem], str | None]:
         items: list[MemoryItem] = []
-        since = cursor or (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
-        headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/vnd.api+json"}
+        since = cursor or (datetime.now(UTC) - timedelta(hours=1)).isoformat()
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/vnd.api+json",
+        }
 
         async with httpx.AsyncClient(timeout=30) as client:
             # Recent prospects
             resp = await client.get(
                 f"{OUTREACH_API}/prospects",
-                params={"filter[updatedAt]": f"{since}..inf", "page[limit]": 50, "sort": "-updatedAt"},
+                params={
+                    "filter[updatedAt]": f"{since}..inf",
+                    "page[limit]": 50,
+                    "sort": "-updatedAt",
+                },
                 headers=headers,
             )
             if resp.status_code == 200:
@@ -89,7 +93,10 @@ class OutreachProvider(BaseProvider):
             if resp.status_code == 200:
                 for state in resp.json().get("data", []):
                     attrs = state.get("attributes", {})
-                    text = f"Sequence State: {attrs.get('state', '')} — Step {attrs.get('activeAt', '')}"
+                    text = (
+                        f"Sequence State: {attrs.get('state', '')} — "
+                        f"Step {attrs.get('activeAt', '')}"
+                    )
                     items.append(self._make_memory(
                         text=text,
                         source_id=f"outreach-seqstate-{state['id']}",
@@ -101,7 +108,7 @@ class OutreachProvider(BaseProvider):
                         timestamp=attrs.get("updatedAt"),
                     ))
 
-        return items, datetime.now(timezone.utc).isoformat()
+        return items, datetime.now(UTC).isoformat()
 
     async def transform_webhook(
         self,

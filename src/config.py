@@ -1,9 +1,9 @@
 """Configuration management for Membread."""
 
 import os
-from typing import Optional
-from pydantic import BaseModel, Field
+
 from dotenv import load_dotenv
+from pydantic import BaseModel, Field
 
 # Load environment variables
 load_dotenv()
@@ -90,7 +90,9 @@ class Config(BaseModel):
         description="Connection URI for the graph database",
     )
     enable_temporal: bool = Field(
-        default_factory=lambda: os.getenv("ENABLE_TEMPORAL", "true").lower() in ("1", "true", "yes"),
+        default_factory=lambda: os.getenv(
+            "ENABLE_TEMPORAL", "true",
+        ).lower() in ("1", "true", "yes"),
         description="Enable bi-temporal knowledge graph via Graphiti",
     )
     local_llm_base_url: str = Field(

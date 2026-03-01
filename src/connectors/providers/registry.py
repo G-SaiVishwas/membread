@@ -4,48 +4,48 @@ Central place to register and look up all 47 connector providers.
 """
 
 from src.connectors.providers.base import BaseProvider
+from src.connectors.providers.docusign import DocuSignProvider
+
+# Tier 2: Enterprise
+from src.connectors.providers.enterprise import (
+    AutomationAnywhereProvider,
+    CoupaProvider,
+    IroncladProvider,
+    MagentoProvider,
+    OracleSCMProvider,
+    SAPProvider,
+    TwilioFlexProvider,
+    UiPathProvider,
+)
+from src.connectors.providers.freshdesk import FreshdeskProvider
+from src.connectors.providers.greenhouse import GreenhouseProvider
 
 # Tier 1: OAuth + Webhook
 from src.connectors.providers.hubspot import HubSpotProvider
-from src.connectors.providers.salesforce import SalesforceProvider
-from src.connectors.providers.shopify import ShopifyProvider
 from src.connectors.providers.intercom import IntercomProvider
-from src.connectors.providers.pagerduty import PagerDutyProvider
+
+# Tier 3: Inbound webhook only
+from src.connectors.providers.ipaas import (
+    AxiomAIProvider,
+    FlowiseProvider,
+    MakeProvider,
+    N8nProvider,
+    RelevanceAIProvider,
+    WorkatoProvider,
+)
 from src.connectors.providers.lever import LeverProvider
-from src.connectors.providers.docusign import DocuSignProvider
+from src.connectors.providers.marketo import MarketoProvider
+from src.connectors.providers.outreach import OutreachProvider
+from src.connectors.providers.pagerduty import PagerDutyProvider
+from src.connectors.providers.salesforce import SalesforceProvider
+from src.connectors.providers.salesloft import SalesLoftProvider
+from src.connectors.providers.servicenow import ServiceNowProvider
+from src.connectors.providers.shopify import ShopifyProvider
+from src.connectors.providers.workday import WorkdayProvider
 from src.connectors.providers.zapier import ZapierProvider
 
 # Tier 2: OAuth/API-Key + Polling
 from src.connectors.providers.zendesk import ZendeskProvider
-from src.connectors.providers.freshdesk import FreshdeskProvider
-from src.connectors.providers.outreach import OutreachProvider
-from src.connectors.providers.salesloft import SalesLoftProvider
-from src.connectors.providers.greenhouse import GreenhouseProvider
-from src.connectors.providers.workday import WorkdayProvider
-from src.connectors.providers.servicenow import ServiceNowProvider
-from src.connectors.providers.marketo import MarketoProvider
-
-# Tier 2: Enterprise
-from src.connectors.providers.enterprise import (
-    UiPathProvider,
-    AutomationAnywhereProvider,
-    SAPProvider,
-    OracleSCMProvider,
-    CoupaProvider,
-    IroncladProvider,
-    MagentoProvider,
-    TwilioFlexProvider,
-)
-
-# Tier 3: Inbound webhook only
-from src.connectors.providers.ipaas import (
-    N8nProvider,
-    MakeProvider,
-    WorkatoProvider,
-    AxiomAIProvider,
-    FlowiseProvider,
-    RelevanceAIProvider,
-)
 
 
 def build_provider_registry() -> dict[str, BaseProvider]:

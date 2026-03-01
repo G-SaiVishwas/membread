@@ -1,16 +1,15 @@
 """Constraint enforcer for privilege layers and injection detection."""
 
 import re
+
 import asyncpg
-from typing import List
 import structlog
 
 from src.models import (
-    Operation,
-    ValidationResult,
     Constraint,
+    Operation,
     PrivilegeLayer,
-    ValidationError,
+    ValidationResult,
 )
 
 logger = structlog.get_logger()
@@ -23,7 +22,7 @@ class ConstraintEnforcer:
 
     def __init__(self, pool: asyncpg.Pool):
         self.pool = pool
-        self.constraints: List[Constraint] = []
+        self.constraints: list[Constraint] = []
 
     async def load_constraints(self) -> None:
         """Load Layer 0 immutable constraints from database."""
@@ -52,7 +51,7 @@ class ConstraintEnforcer:
     async def enforce_constraints(
         self,
         operation: Operation,
-        constraints: List[Constraint] = None,
+        constraints: list[Constraint] = None,
     ) -> ValidationResult:
         """
         Validate operation against immutable constraints.
@@ -106,8 +105,8 @@ class ConstraintEnforcer:
     def _check_layer_0_violations(
         self,
         operation: Operation,
-        constraints: List[Constraint],
-    ) -> List[str]:
+        constraints: list[Constraint],
+    ) -> list[str]:
         """Check if Layer 2 operation violates Layer 0 constraints."""
         violations = []
 
@@ -127,7 +126,7 @@ class ConstraintEnforcer:
 
         return violations
 
-    def _detect_prompt_injection(self, text: str, constraints: List[Constraint]) -> bool:
+    def _detect_prompt_injection(self, text: str, constraints: list[Constraint]) -> bool:
         """Detect prompt injection patterns."""
         text_lower = text.lower()
 
@@ -145,7 +144,7 @@ class ConstraintEnforcer:
 
         return False
 
-    def _detect_sql_injection(self, data: dict, constraints: List[Constraint]) -> bool:
+    def _detect_sql_injection(self, data: dict, constraints: list[Constraint]) -> bool:
         """Detect SQL injection patterns."""
         # Check all string values in data
         for value in data.values():
@@ -166,7 +165,7 @@ class ConstraintEnforcer:
 
         return False
 
-    def _get_max_observation_length(self, constraints: List[Constraint]) -> int:
+    def _get_max_observation_length(self, constraints: list[Constraint]) -> int:
         """Get maximum observation length from constraints."""
         for constraint in constraints:
             if constraint.constraint_type == "max_observation_length":

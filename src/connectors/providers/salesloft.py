@@ -4,14 +4,12 @@ Captures cadence steps, calls, and emails from sales engagement.
 """
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import Any
 
 import httpx
 
-from typing import Any
-
 from src.connectors.oauth import OAuthConfig
-
 from src.connectors.providers.base import BaseProvider, MemoryItem
 
 logger = logging.getLogger("membread.providers.salesloft")
@@ -48,10 +46,18 @@ class SalesLoftProvider(BaseProvider):
 
         async with httpx.AsyncClient(timeout=30) as client:
             # Recent people
-            params: dict[str, Any] = {"per_page": 50, "sort_by": "updated_at", "sort_direction": "DESC"}
+            params: dict[str, Any] = {
+                "per_page": 50,
+                "sort_by": "updated_at",
+                "sort_direction": "DESC",
+            }
             if cursor:
                 params["updated_at[gt]"] = cursor
-            resp = await client.get(f"{SALESLOFT_API}/people.json", params=params, headers=headers)
+            resp = await client.get(
+                f"{SALESLOFT_API}/people.json",
+                params=params,
+                headers=headers,
+            )
             if resp.status_code == 200:
                 for person in resp.json().get("data", []):
                     name = f"{person.get('first_name', '')} {person.get('last_name', '')}".strip()
@@ -96,7 +102,7 @@ class SalesLoftProvider(BaseProvider):
                         timestamp=call.get("created_at"),
                     ))
 
-        return items, datetime.now(timezone.utc).isoformat()
+        return items, datetime.now(UTC).isoformat()
 
     async def transform_webhook(
         self,

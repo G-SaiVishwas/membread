@@ -4,11 +4,10 @@ Captures leads, campaigns, and marketing activity.
 """
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import httpx
-
-from typing import Any
 
 from src.connectors.providers.base import BaseProvider, MemoryItem
 
@@ -41,14 +40,20 @@ class MarketoProvider(BaseProvider):
             # Get access token via client credentials
             token_resp = await client.get(
                 f"{base}/identity/oauth/token",
-                params={"grant_type": "client_credentials", "client_id": client_id, "client_secret": client_secret},
+                params={
+                    "grant_type": "client_credentials",
+                    "client_id": client_id,
+                    "client_secret": client_secret,
+                },
             )
             if token_resp.status_code != 200:
                 return items, cursor
             token = token_resp.json().get("access_token", "")
 
             headers = {"Authorization": f"Bearer {token}"}
-            since = cursor or (datetime.now(timezone.utc) - timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+            since = cursor or (
+                datetime.now(UTC) - timedelta(hours=1)
+            ).strftime("%Y-%m-%dT%H:%M:%SZ")
 
             # Get recently updated leads
             resp = await client.get(

@@ -6,15 +6,12 @@ Captures orders, customers, products, and inventory changes.
 import hashlib
 import hmac
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import httpx
 
-from typing import Any
-
 from src.connectors.oauth import OAuthConfig
-from typing import Any
-
 from src.connectors.providers.base import BaseProvider, MemoryItem
 
 logger = logging.getLogger("membread.providers.shopify")
@@ -64,9 +61,12 @@ class ShopifyProvider(BaseProvider):
         if not shop:
             return items, cursor
 
-        since = cursor or (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+        since = cursor or (datetime.now(UTC) - timedelta(hours=1)).isoformat()
         base_url = f"https://{shop}.myshopify.com/admin/api/2024-01"
-        headers: dict[str, Any] = {"X-Shopify-Access-Token": access_token, "Content-Type": "application/json"}
+        headers: dict[str, Any] = {
+            "X-Shopify-Access-Token": access_token,
+            "Content-Type": "application/json",
+        }
 
         async with httpx.AsyncClient(timeout=30) as client:
             # Recent orders
@@ -77,10 +77,17 @@ class ShopifyProvider(BaseProvider):
             )
             if resp.status_code == 200:
                 for order in resp.json().get("orders", []):
-                    text = f"Order #{order['order_number']}: {order.get('financial_status', '')} — ${order.get('total_price', '0')}"
+                    text = (
+                        f"Order #{order['order_number']}: "
+                        f"{order.get('financial_status', '')} — "
+                        f"${order.get('total_price', '0')}"
+                    )
                     customer = order.get("customer", {})
                     if customer:
-                        text += f" from {customer.get('first_name', '')} {customer.get('last_name', '')}"
+                        text += (
+                            f" from {customer.get('first_name', '')} "
+                            f"{customer.get('last_name', '')}"
+                        )
                     items.append(self._make_memory(
                         text=text,
                         source_id=f"shopify-order-{order['id']}",
@@ -107,7 +114,10 @@ class ShopifyProvider(BaseProvider):
                 for cust in resp.json().get("customers", []):
                     name = f"{cust.get('first_name', '')} {cust.get('last_name', '')}".strip()
                     text = f"Customer: {name} ({cust.get('email', '')})"
-                    text += f" — Orders: {cust.get('orders_count', 0)}, Total Spent: ${cust.get('total_spent', '0')}"
+                    text += (
+                        f" — Orders: {cust.get('orders_count', 0)}, "
+                        f"Total Spent: ${cust.get('total_spent', '0')}"
+                    )
                     items.append(self._make_memory(
                         text=text,
                         source_id=f"shopify-customer-{cust['id']}",
@@ -122,7 +132,7 @@ class ShopifyProvider(BaseProvider):
                         timestamp=cust.get("updated_at"),
                     ))
 
-        new_cursor = datetime.now(timezone.utc).isoformat()
+        new_cursor = datetime.now(UTC).isoformat()
         return items, new_cursor
 
     async def register_webhook(
@@ -155,7 +165,10 @@ class ShopifyProvider(BaseProvider):
         topic = (headers or {}).get("x-shopify-topic", "unknown")
 
         if "order" in topic:
-            text = f"Shopify Order #{payload.get('order_number', '')}: {payload.get('financial_status', '')}"
+            text = (
+                f"Shopify Order #{payload.get('order_number', '')}: "
+                f"{payload.get('financial_status', '')}"
+            )
             text += f" — ${payload.get('total_price', '0')}"
             items.append(self._make_memory(
                 text=text,
@@ -171,7 +184,10 @@ class ShopifyProvider(BaseProvider):
         elif "customer" in topic:
             name = f"{payload.get('first_name', '')} {payload.get('last_name', '')}".strip()
             items.append(self._make_memory(
-                text=f"Shopify Customer {topic.split('/')[-1]}: {name} ({payload.get('email', '')})",
+                text=(
+                    f"Shopify Customer {topic.split('/')[-1]}: "
+                    f"{name} ({payload.get('email', '')})"
+                ),
                 source_id=f"shopify-customer-{payload.get('id', '')}",
                 entity_type="customer",
                 metadata={"topic": topic, "email": payload.get("email", "")},

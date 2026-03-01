@@ -4,15 +4,12 @@ Captures tickets, comments, and customer interactions.
 """
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import httpx
 
-from typing import Any
-
 from src.connectors.oauth import OAuthConfig
-from typing import Any
-
 from src.connectors.providers.base import BaseProvider, MemoryItem
 
 logger = logging.getLogger("membread.providers.zendesk")
@@ -50,9 +47,16 @@ class ZendeskProvider(BaseProvider):
             return items, cursor
         token = access_token or api_key
         base = f"https://{subdomain}.zendesk.com/api/v2"
-        headers = {"Authorization": f"Bearer {token}"} if access_token else {"Authorization": f"Basic {api_key}"}
+        if access_token:
+            headers = {"Authorization": f"Bearer {token}"}
+        else:
+            headers = {"Authorization": f"Basic {api_key}"}
 
-        start_time = cursor or str(int((datetime.now(timezone.utc) - timedelta(hours=1)).timestamp()))
+        start_time = cursor or str(
+            int(
+                (datetime.now(UTC) - timedelta(hours=1)
+            ).timestamp())
+        )
         async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.get(
                 f"{base}/incremental/tickets.json",
@@ -62,7 +66,11 @@ class ZendeskProvider(BaseProvider):
             if resp.status_code == 200:
                 data = resp.json()
                 for ticket in data.get("tickets", []):
-                    text = f"Ticket #{ticket.get('id')}: {ticket.get('subject', 'No subject')} — {ticket.get('status', '')}"
+                    text = (
+                        f"Ticket #{ticket.get('id')}: "
+                        f"{ticket.get('subject', 'No subject')} — "
+                        f"{ticket.get('status', '')}"
+                    )
                     if ticket.get("priority"):
                         text += f" [{ticket['priority']}]"
                     items.append(self._make_memory(
@@ -91,7 +99,11 @@ class ZendeskProvider(BaseProvider):
     ) -> list[MemoryItem]:
         items: list[MemoryItem] = []
         ticket = payload.get("ticket", payload)
-        text = f"Zendesk: Ticket #{ticket.get('id', '')} — {ticket.get('subject', '')} [{ticket.get('status', '')}]"
+        text = (
+            f"Zendesk: Ticket #{ticket.get('id', '')} — "
+            f"{ticket.get('subject', '')} "
+            f"[{ticket.get('status', '')}]"
+        )
         items.append(self._make_memory(
             text=text,
             source_id=f"zendesk-wh-{ticket.get('id', '')}",

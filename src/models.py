@@ -3,8 +3,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional
-from uuid import UUID, uuid4
+from typing import Any
 
 
 class PrivilegeLayer(Enum):
@@ -37,7 +36,7 @@ class Fact:
     entity_type: str
     properties: dict[str, Any]
     valid_at: datetime
-    invalid_at: Optional[datetime]
+    invalid_at: datetime | None
     tenant_id: str
     source_observation_id: str
 
@@ -51,9 +50,9 @@ class GraphNode:
     entity_type: str
     properties: dict[str, Any]
     valid_at: datetime
-    invalid_at: Optional[datetime]
+    invalid_at: datetime | None
     tenant_id: str
-    source_observation_id: Optional[str] = None
+    source_observation_id: str | None = None
 
 
 @dataclass
@@ -66,7 +65,7 @@ class GraphRelationship:
     relationship_type: str
     properties: dict[str, Any]
     valid_at: datetime
-    invalid_at: Optional[datetime] = None
+    invalid_at: datetime | None = None
 
 
 @dataclass
@@ -100,7 +99,7 @@ class RecallResult:
     sources: list[str]
     token_count: int
     compressed: bool = False
-    time_travel_ts: Optional[datetime] = None
+    time_travel_ts: datetime | None = None
 
 
 @dataclass
@@ -182,7 +181,7 @@ class Constraint:
     id: str
     constraint_type: str
     rule: dict[str, Any]
-    description: Optional[str] = None
+    description: str | None = None
 
 
 class CircuitBreakerState(Enum):
@@ -258,10 +257,6 @@ class MaxRetriesExceededError(MembreadError):
 # Canonical definitions live in src.memory_engine.engines.graphiti_engine
 # to avoid circular imports.  Re-export here for convenience.
 
-from src.memory_engine.engines.graphiti_engine import (
-    TemporalSearchResult,
-    EntityVersion,
-)
 
 
 @dataclass
@@ -270,6 +265,6 @@ class CapturePayload:
 
     conversation: list[dict[str, Any]]
     source: str = "browser_extension"
-    url: Optional[str] = None
-    title: Optional[str] = None
-    captured_at: Optional[datetime] = None
+    url: str | None = None
+    title: str | None = None
+    captured_at: datetime | None = None

@@ -7,7 +7,7 @@ and connector state — all with bi-temporal indexing and RLS.
 
 import os
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import asyncpg
@@ -38,11 +38,17 @@ class ConnectorDB:
 
     async def initialize_schema(self) -> None:
         """Run schema_connectors.sql to create tables."""
-        schema_path = os.path.join(os.path.dirname(__file__), "..", "..", "schema_connectors.sql")
+        schema_path = os.path.join(
+            os.path.dirname(__file__),
+            "..", "..", "schema_connectors.sql",
+        )
         if not os.path.exists(schema_path):
-            schema_path = os.path.join(os.path.dirname(__file__), "..", "..", "schema_connectors.sql")
+            schema_path = os.path.join(
+                os.path.dirname(__file__),
+                "..", "..", "schema_connectors.sql",
+            )
         try:
-            with open(schema_path, "r") as f:
+            with open(schema_path) as f:
                 sql = f.read()
             async with self.pool.acquire() as conn:
                 await conn.execute(sql)
@@ -66,7 +72,10 @@ class ConnectorDB:
         async with self.pool.acquire() as conn:
             row = await conn.fetchrow(
                 """
-                INSERT INTO provider_credentials (tenant_id, provider_id, client_id, client_secret_encrypted, scopes, extra_config)
+                INSERT INTO provider_credentials (
+                    tenant_id, provider_id, client_id,
+                    client_secret_encrypted, scopes, extra_config
+                )
                 VALUES ($1, $2, $3, $4, $5, $6)
                 ON CONFLICT (tenant_id, provider_id) DO UPDATE SET
                     client_id = EXCLUDED.client_id,
@@ -85,7 +94,9 @@ class ConnectorDB:
             )
             return str(row["id"])
 
-    async def get_provider_credentials(self, tenant_id: str, provider_id: str) -> dict[str, Any] | None:
+    async def get_provider_credentials(
+        self, tenant_id: str, provider_id: str,
+    ) -> dict[str, Any] | None:
         """Get decrypted provider credentials."""
         async with self.pool.acquire() as conn:
             row = await conn.fetchrow(
@@ -188,7 +199,7 @@ class ConnectorDB:
         """Store OAuth tokens after successful auth."""
         expires_at = None
         if expires_in:
-            expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
+            expires_at = datetime.now(UTC) + timedelta(seconds=expires_in)
         async with self.pool.acquire() as conn:
             await conn.execute(
                 """
@@ -250,7 +261,9 @@ class ConnectorDB:
                 connector_id,
             )
 
-    async def get_decrypted_tokens(self, tenant_id: str, connector_id: str) -> dict[str, Any] | None:
+    async def get_decrypted_tokens(
+        self, tenant_id: str, connector_id: str,
+    ) -> dict[str, Any] | None:
         """Get decrypted access/refresh tokens and API key."""
         async with self.pool.acquire() as conn:
             row = await conn.fetchrow(
@@ -292,7 +305,7 @@ class ConnectorDB:
 
     async def get_connections_needing_refresh(self) -> list[dict[str, Any]]:
         """Find connections whose OAuth tokens expire within 5 minutes."""
-        threshold = datetime.now(timezone.utc) + timedelta(minutes=5)
+        threshold = datetime.now(UTC) + timedelta(minutes=5)
         async with self.pool.acquire() as conn:
             rows = await conn.fetch(
                 """
@@ -330,17 +343,22 @@ class ConnectorDB:
         poll_interval: int = 60,
     ) -> None:
         """Update or create polling cursor."""
-        next_poll = datetime.now(timezone.utc) + timedelta(seconds=poll_interval)
+        next_poll = datetime.now(UTC) + timedelta(seconds=poll_interval)
         async with self.pool.acquire() as conn:
             await conn.execute(
                 """
-                INSERT INTO sync_cursors (tenant_id, connector_id, cursor_value, last_poll_at, next_poll_at, poll_interval_seconds, items_fetched_total)
+                INSERT INTO sync_cursors (
+                    tenant_id, connector_id, cursor_value,
+                    last_poll_at, next_poll_at,
+                    poll_interval_seconds, items_fetched_total
+                )
                 VALUES ($1, $2, $3, NOW(), $4, $5, $6)
                 ON CONFLICT (tenant_id, connector_id) DO UPDATE SET
                     cursor_value = EXCLUDED.cursor_value,
                     last_poll_at = NOW(),
                     next_poll_at = EXCLUDED.next_poll_at,
-                    items_fetched_total = sync_cursors.items_fetched_total + EXCLUDED.items_fetched_total,
+                    items_fetched_total = sync_cursors.items_fetched_total
+                        + EXCLUDED.items_fetched_total,
                     consecutive_errors = 0,
                     last_error = NULL,
                     updated_at = NOW()
@@ -361,7 +379,10 @@ class ConnectorDB:
                 UPDATE sync_cursors SET
                     consecutive_errors = consecutive_errors + 1,
                     last_error = $3,
-                    next_poll_at = NOW() + (poll_interval_seconds * LEAST(consecutive_errors + 1, 10)) * INTERVAL '1 second',
+                    next_poll_at = NOW()
+                        + (poll_interval_seconds
+                           * LEAST(consecutive_errors + 1, 10))
+                        * INTERVAL '1 second',
                     updated_at = NOW()
                 WHERE tenant_id = $1 AND connector_id = $2
                 """,
@@ -404,7 +425,9 @@ class ConnectorDB:
             row = await conn.fetchrow(
                 """
                 INSERT INTO webhook_registrations (
-                    tenant_id, connector_id, provider_webhook_id, webhook_url, events, verification_secret
+                    tenant_id, connector_id,
+                    provider_webhook_id, webhook_url,
+                    events, verification_secret
                 )
                 VALUES ($1, $2, $3, $4, $5, $6)
                 RETURNING id
@@ -418,7 +441,9 @@ class ConnectorDB:
             )
             return str(row["id"])
 
-    async def get_webhook_registrations(self, tenant_id: str, connector_id: str) -> list[dict[str, Any]]:
+    async def get_webhook_registrations(
+        self, tenant_id: str, connector_id: str,
+    ) -> list[dict[str, Any]]:
         """Get webhook registrations for a connector."""
         async with self.pool.acquire() as conn:
             rows = await conn.fetch(
@@ -435,7 +460,9 @@ class ConnectorDB:
         """Mark a webhook registration as inactive."""
         async with self.pool.acquire() as conn:
             await conn.execute(
-                "UPDATE webhook_registrations SET status = 'inactive', updated_at = NOW() WHERE id = $1",
+                "UPDATE webhook_registrations "
+                "SET status = 'inactive', updated_at = NOW() "
+                "WHERE id = $1",
                 uuid.UUID(registration_id),
             )
 
@@ -503,13 +530,28 @@ class ConnectorDB:
             "has_access_token": row["access_token_encrypted"] is not None,
             "has_refresh_token": row["refresh_token_encrypted"] is not None,
             "has_api_key": row["api_key_encrypted"] is not None,
-            "token_expires_at": row["token_expires_at"].isoformat() if row["token_expires_at"] else None,
+            "token_expires_at": (
+                row["token_expires_at"].isoformat()
+                if row["token_expires_at"] else None
+            ),
             "webhook_id": row["webhook_id"],
             "config": row["config"] or {},
             "error_message": row["error_message"],
             "memories_captured": row["memories_captured"] or 0,
-            "last_sync_at": row["last_sync_at"].isoformat() if row["last_sync_at"] else None,
-            "connected_at": row["connected_at"].isoformat() if row["connected_at"] else None,
-            "valid_at": row["valid_at"].isoformat() if row["valid_at"] else None,
-            "invalid_at": row["invalid_at"].isoformat() if row["invalid_at"] else None,
+            "last_sync_at": (
+                row["last_sync_at"].isoformat()
+                if row["last_sync_at"] else None
+            ),
+            "connected_at": (
+                row["connected_at"].isoformat()
+                if row["connected_at"] else None
+            ),
+            "valid_at": (
+                row["valid_at"].isoformat()
+                if row["valid_at"] else None
+            ),
+            "invalid_at": (
+                row["invalid_at"].isoformat()
+                if row["invalid_at"] else None
+            ),
         }

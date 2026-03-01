@@ -1,12 +1,13 @@
 """Circuit breaker for fault tolerance."""
 
-import asyncio
-from datetime import datetime, timedelta
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from datetime import datetime
+from typing import Any
+
 import structlog
 
-from src.models import CircuitBreakerState, CircuitBreakerOpenError
 from src.config import config
+from src.models import CircuitBreakerOpenError, CircuitBreakerState
 
 logger = structlog.get_logger()
 
@@ -30,12 +31,12 @@ class CircuitBreaker:
         self.failure_count = 0
         self.success_count = 0
         self.state = CircuitBreakerState.CLOSED
-        self.last_failure_time: Optional[datetime] = None
+        self.last_failure_time: datetime | None = None
 
     async def execute(
         self,
         operation: Callable,
-        fallback: Optional[Callable] = None,
+        fallback: Callable | None = None,
     ) -> Any:
         """
         Execute operation with circuit breaker protection.

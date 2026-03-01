@@ -4,11 +4,10 @@ Captures helpdesk tickets and customer interactions.
 """
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import httpx
-
-from typing import Any
 
 from src.connectors.providers.base import BaseProvider, MemoryItem
 
@@ -33,18 +32,29 @@ class FreshdeskProvider(BaseProvider):
         if not domain or not api_key:
             return items, cursor
 
-        since = cursor or (datetime.now(timezone.utc) - timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        since = cursor or (
+            datetime.now(UTC) - timedelta(hours=1)
+        ).strftime("%Y-%m-%dT%H:%M:%SZ")
         base = f"https://{domain}.freshdesk.com/api/v2"
         auth = (api_key, "X")  # Freshdesk uses API key as username
 
         async with httpx.AsyncClient(timeout=30, auth=auth) as client:
             resp = await client.get(
                 f"{base}/tickets",
-                params={"updated_since": since, "per_page": 50, "order_by": "updated_at", "order_type": "desc"},
+                params={
+                    "updated_since": since,
+                    "per_page": 50,
+                    "order_by": "updated_at",
+                    "order_type": "desc",
+                },
             )
             if resp.status_code == 200:
                 for ticket in resp.json():
-                    text = f"Freshdesk #{ticket.get('id')}: {ticket.get('subject', '')} — Status: {ticket.get('status')}"
+                    text = (
+                        f"Freshdesk #{ticket.get('id')}: "
+                        f"{ticket.get('subject', '')} — "
+                        f"Status: {ticket.get('status')}"
+                    )
                     if ticket.get("priority"):
                         priorities = {1: "Low", 2: "Medium", 3: "High", 4: "Urgent"}
                         text += f" [{priorities.get(ticket['priority'], ticket['priority'])}]"
@@ -64,7 +74,7 @@ class FreshdeskProvider(BaseProvider):
                         timestamp=ticket.get("updated_at"),
                     ))
 
-        new_cursor = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        new_cursor = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         return items, new_cursor
 
     async def validate_api_key(self, api_key: str, config: dict[str, Any] | None = None) -> bool:

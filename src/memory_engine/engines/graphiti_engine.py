@@ -25,8 +25,9 @@ from __future__ import annotations
 
 import json
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Literal, Optional
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from typing import Any, Literal
 
 import structlog
 
@@ -58,7 +59,6 @@ except ImportError:
 # ---------------------------------------------------------------------------
 # Lightweight result dataclass (avoids coupling to src.models)
 # ---------------------------------------------------------------------------
-from dataclasses import dataclass, field
 
 
 @dataclass(slots=True, frozen=True)
@@ -68,9 +68,9 @@ class TemporalSearchResult:
     id: str
     text: str
     score: float
-    event_time: Optional[datetime] = None
-    ingestion_time: Optional[datetime] = None
-    source: Optional[str] = None
+    event_time: datetime | None = None
+    ingestion_time: datetime | None = None
+    source: str | None = None
     graph_score: float = 0.0
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -83,8 +83,8 @@ class EntityVersion:
     name: str
     properties: dict[str, Any]
     valid_from: datetime
-    valid_until: Optional[datetime] = None
-    source_episode_id: Optional[str] = None
+    valid_until: datetime | None = None
+    source_episode_id: str | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -114,7 +114,12 @@ def _build_llm_client(config: Any) -> Any:
             )
 
             model = getattr(config, "local_llm_model", "llama3")
-            logger.info("graphiti_llm_client", provider="openai_generic", base_url=base_url, model=model)
+            logger.info(
+                "graphiti_llm_client",
+                provider="openai_generic",
+                base_url=base_url,
+                model=model,
+            )
             return OpenAIGenericClient(
                 base_url=base_url,
                 api_key="ollama",  # Ollama ignores this
@@ -193,7 +198,7 @@ class GraphitiEngine:
         self._backend: str = getattr(config, "graphiti_backend", "memory")
         self._uri: str = getattr(config, "graphiti_uri", "")
         self._temporal: bool = getattr(config, "enable_temporal", True)
-        self._graphiti: Optional[Any] = None  # Graphiti instance — lazily initialised
+        self._graphiti: Any | None = None  # Graphiti instance — lazily initialised
         self._initialised: bool = False
 
     # ------------------------------------------------------------------
@@ -312,19 +317,19 @@ class GraphitiEngine:
         episode_id = str(uuid.uuid4())
         episode_name = name or f"episode_{episode_id[:8]}"
         episode_body = text if isinstance(text, str) else json.dumps(text, default=str)
-        event_time = timestamp or datetime.now(timezone.utc)
+        event_time = timestamp or datetime.now(UTC)
 
         if self._graphiti is not None:
             try:
                 # Map string type → EpisodeType enum
-                ep_type = EpisodeType.text  # type: ignore[union-attr]
+                _ep_type = EpisodeType.text  # type: ignore[union-attr]
                 if episode_type == "json":
-                    ep_type = EpisodeType.json  # type: ignore[union-attr]
+                    _ep_type = EpisodeType.json  # type: ignore[union-attr]
                 elif episode_type == "message":
                     try:
-                        ep_type = EpisodeType.message  # type: ignore[union-attr]
+                        _ep_type = EpisodeType.message  # type: ignore[union-attr]
                     except AttributeError:
-                        ep_type = EpisodeType.text  # type: ignore[union-attr]
+                        _ep_type = EpisodeType.text  # type: ignore[union-attr]
 
                 await self._graphiti.add_episode(
                     name=episode_name,
@@ -501,7 +506,7 @@ class GraphitiEngine:
                         entity_id=str(getattr(r, "uuid", uuid.uuid4())),
                         name=str(name),
                         properties={"fact": str(getattr(r, "fact", ""))},
-                        valid_from=getattr(r, "created_at", datetime.now(timezone.utc)),
+                        valid_from=getattr(r, "created_at", datetime.now(UTC)),
                         valid_until=getattr(r, "expired_at", None),
                         source_episode_id=str(getattr(r, "episode_uuid", "")),
                     )
@@ -594,7 +599,7 @@ class GraphitiEngine:
                 name=f"auto_summary_{GraphitiEngine._episode_counter}",
                 episode_body=summary_body,
                 source_description="self_compression",
-                reference_time=datetime.now(timezone.utc),
+                reference_time=datetime.now(UTC),
                 group_id=group_id,
             )
             logger.info("graphiti_auto_summarise_complete", group_id=group_id)

@@ -4,15 +4,12 @@ Captures leads, opportunities, cases, accounts, and platform events.
 """
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import httpx
 
-from typing import Any
-
 from src.connectors.oauth import OAuthConfig
-from typing import Any
-
 from src.connectors.providers.base import BaseProvider, MemoryItem
 
 logger = logging.getLogger("membread.providers.salesforce")
@@ -53,17 +50,27 @@ class SalesforceProvider(BaseProvider):
     ) -> tuple[list[MemoryItem], str | None]:
         items: list[MemoryItem] = []
         # cursor is the last modified timestamp ISO string
-        since = cursor or (datetime.now(timezone.utc) - timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        since = cursor or (
+            datetime.now(UTC) - timedelta(hours=1)
+        ).strftime("%Y-%m-%dT%H:%M:%SZ")
 
         # Get instance URL from token (stored in config after OAuth)
-        instance_url = (config or {}).get("instance_url", "https://na1.salesforce.com")
-        headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
+        instance_url = (config or {}).get(
+            "instance_url", "https://na1.salesforce.com",
+        )
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
+        }
 
         async with httpx.AsyncClient(timeout=30) as client:
             # Query recently modified opportunities
             soql = (
-                f"SELECT Id, Name, StageName, Amount, CloseDate, AccountId, OwnerId, LastModifiedDate "
-                f"FROM Opportunity WHERE LastModifiedDate > {since} ORDER BY LastModifiedDate DESC LIMIT 100"
+                f"SELECT Id, Name, StageName, Amount, CloseDate, "
+                f"AccountId, OwnerId, LastModifiedDate "
+                f"FROM Opportunity "
+                f"WHERE LastModifiedDate > {since} "
+                f"ORDER BY LastModifiedDate DESC LIMIT 100"
             )
             resp = await client.get(
                 f"{instance_url}/services/data/v59.0/query",
@@ -96,8 +103,11 @@ class SalesforceProvider(BaseProvider):
 
             # Query recently modified leads
             soql = (
-                f"SELECT Id, Name, Email, Company, Status, LeadSource, LastModifiedDate "
-                f"FROM Lead WHERE LastModifiedDate > {since} ORDER BY LastModifiedDate DESC LIMIT 100"
+                f"SELECT Id, Name, Email, Company, Status, "
+                f"LeadSource, LastModifiedDate "
+                f"FROM Lead "
+                f"WHERE LastModifiedDate > {since} "
+                f"ORDER BY LastModifiedDate DESC LIMIT 100"
             )
             resp = await client.get(
                 f"{instance_url}/services/data/v59.0/query",
@@ -126,8 +136,11 @@ class SalesforceProvider(BaseProvider):
 
             # Query recent cases
             soql = (
-                f"SELECT Id, Subject, Status, Priority, CaseNumber, LastModifiedDate "
-                f"FROM Case WHERE LastModifiedDate > {since} ORDER BY LastModifiedDate DESC LIMIT 100"
+                f"SELECT Id, Subject, Status, Priority, "
+                f"CaseNumber, LastModifiedDate "
+                f"FROM Case "
+                f"WHERE LastModifiedDate > {since} "
+                f"ORDER BY LastModifiedDate DESC LIMIT 100"
             )
             resp = await client.get(
                 f"{instance_url}/services/data/v59.0/query",
@@ -136,7 +149,10 @@ class SalesforceProvider(BaseProvider):
             )
             if resp.status_code == 200:
                 for record in resp.json().get("records", []):
-                    text = f"Case #{record.get('CaseNumber', '')}: {record.get('Subject', 'No subject')}"
+                    text = (
+                        f"Case #{record.get('CaseNumber', '')}: "
+                        f"{record.get('Subject', 'No subject')}"
+                    )
                     text += f" — {record.get('Status', '')} ({record.get('Priority', '')})"
                     items.append(self._make_memory(
                         text=text,
@@ -151,10 +167,16 @@ class SalesforceProvider(BaseProvider):
                         timestamp=record.get("LastModifiedDate"),
                     ))
 
-        new_cursor = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        new_cursor = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         return items, new_cursor
 
-    async def on_connected(self, tenant_id: str, access_token: str | None = None, api_key: str | None = None, config: dict[str, Any] | None = None) -> dict[str, Any] | None:
+    async def on_connected(
+        self,
+        tenant_id: str,
+        access_token: str | None = None,
+        api_key: str | None = None,
+        config: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
         """Fetch instance_url from Salesforce identity endpoint."""
         if not access_token:
             return None

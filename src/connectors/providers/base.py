@@ -6,7 +6,7 @@ and implements the methods relevant to its auth method and data model.
 
 import abc
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from src.connectors.oauth import OAuthConfig
@@ -37,7 +37,7 @@ class MemoryItem:
         self.source_id = source_id  # dedupe key from provider
         self.entity_type = entity_type  # observation, contact, deal, ticket, etc.
         self.metadata = metadata or {}
-        self.timestamp = timestamp or datetime.now(timezone.utc).isoformat()
+        self.timestamp = timestamp or datetime.now(UTC).isoformat()
         self.relationships = relationships or []
 
     def to_dict(self) -> dict[str, Any]:

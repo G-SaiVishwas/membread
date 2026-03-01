@@ -1,15 +1,16 @@
 """FastAPI HTTP server for Membread / Membread."""
 
-from fastapi import FastAPI, HTTPException, Depends, Header
+from datetime import datetime
+from typing import Any
+
+import structlog
+from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Any, Optional
-from datetime import datetime
-import structlog
 
+from src.auth.jwt_authenticator import JWTAuthenticator
 from src.memory_engine.memory_engine import MemoryEngine
 from src.memory_engine.sql_store import SQLStore
-from src.auth.jwt_authenticator import JWTAuthenticator
 from src.models import AuthenticationError
 
 logger = structlog.get_logger()
@@ -23,7 +24,7 @@ class StoreRequest(BaseModel):
 
 class RecallRequest(BaseModel):
     query: str
-    time_travel_ts: Optional[str] = None
+    time_travel_ts: str | None = None
     max_tokens: int = 2000
 
 
@@ -73,7 +74,7 @@ class CountResponse(BaseModel):
 # ── Temporal / Graphiti request/response models ──────────────────────
 class TemporalSearchRequest(BaseModel):
     query: str
-    as_of: Optional[str] = None
+    as_of: str | None = None
     limit: int = 10
 
 
@@ -81,15 +82,15 @@ class TemporalHit(BaseModel):
     id: str
     text: str
     score: float
-    event_time: Optional[str] = None
-    ingestion_time: Optional[str] = None
-    source: Optional[str] = None
+    event_time: str | None = None
+    ingestion_time: str | None = None
+    source: str | None = None
     graph_score: float = 0.0
 
 
 class TemporalSearchResponse(BaseModel):
     results: list[TemporalHit]
-    as_of: Optional[str] = None
+    as_of: str | None = None
 
 
 class EntityHistoryRequest(BaseModel):
@@ -101,7 +102,7 @@ class EntityVersionOut(BaseModel):
     name: str
     properties: dict[str, Any] = {}
     valid_from: str
-    valid_until: Optional[str] = None
+    valid_until: str | None = None
 
 
 class EntityHistoryResponse(BaseModel):
@@ -118,8 +119,8 @@ class CaptureRequest(BaseModel):
     """Browser extension /capture payload."""
     conversation: list[dict[str, Any]]
     source: str = "browser_extension"
-    url: Optional[str] = None
-    title: Optional[str] = None
+    url: str | None = None
+    title: str | None = None
 
 
 class CaptureResponse(BaseModel):
@@ -146,7 +147,7 @@ def create_app(
     authenticator: JWTAuthenticator,
 ) -> FastAPI:
     """Create FastAPI application."""
-    
+
     app = FastAPI(
         title="Membread API",
         description="Universal Temporal-Aware Memory Layer for AI Agents",
@@ -167,12 +168,12 @@ def create_app(
         """Extract and validate JWT token."""
         if not authorization:
             raise HTTPException(status_code=401, detail="Authorization header missing")
-        
+
         if not authorization.startswith("Bearer "):
             raise HTTPException(status_code=401, detail="Invalid authorization format")
-        
+
         token = authorization.replace("Bearer ", "")
-        
+
         try:
             claims = authenticator.validate_token(token)
             return claims
@@ -204,7 +205,7 @@ def create_app(
             tenant_id=request.tenant_id,
             user_id=request.user_id,
         )
-        
+
         return TokenResponse(
             token=token,
             tenant_id=request.tenant_id,
@@ -225,7 +226,7 @@ def create_app(
                 tenant_id=user["tenant_id"],
                 user_id=user["user_id"],
             )
-            
+
             return StoreResponse(
                 observation_id=result.observation_id,
                 provenance_hash=result.provenance_hash,
@@ -247,7 +248,7 @@ def create_app(
             time_travel_ts = None
             if request.time_travel_ts:
                 time_travel_ts = datetime.fromisoformat(request.time_travel_ts)
-            
+
             result = await memory_engine.recall_with_compression(
                 query=request.query,
                 tenant_id=user["tenant_id"],
@@ -255,7 +256,7 @@ def create_app(
                 time_travel_ts=time_travel_ts,
                 max_tokens=request.max_tokens,
             )
-            
+
             return RecallResponse(
                 context=result.context,
                 sources=result.sources,
@@ -274,7 +275,7 @@ def create_app(
                 tenant_id=user["tenant_id"],
                 user_id=user["user_id"],
             )
-            
+
             if not profile:
                 # Create default profile
                 profile = await sql_store.create_profile(
@@ -283,7 +284,7 @@ def create_app(
                     display_name="User",
                     preferences={},
                 )
-            
+
             return ProfileResponse(
                 tenant_id=profile.tenant_id,
                 user_id=profile.user_id,

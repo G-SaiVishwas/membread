@@ -1,8 +1,9 @@
 """Database connection pool and initialization."""
 
+
 import asyncpg
-from typing import Optional
 import structlog
+
 from src.config import config
 
 logger = structlog.get_logger()
@@ -12,7 +13,7 @@ class DatabasePool:
     """Async PostgreSQL connection pool manager."""
 
     def __init__(self) -> None:
-        self.pool: Optional[asyncpg.Pool] = None
+        self.pool: asyncpg.Pool | None = None
 
     async def initialize(self) -> None:
         """Initialize the database connection pool."""
@@ -50,7 +51,7 @@ class DatabasePool:
             raise RuntimeError("Database pool not initialized")
 
         try:
-            with open(schema_path, "r") as f:
+            with open(schema_path) as f:
                 schema_sql = f.read()
 
             # Split schema into individual statements and execute them
@@ -59,23 +60,23 @@ class DatabasePool:
                 statements = []
                 current_stmt = []
                 in_function = False
-                
+
                 for line in schema_sql.split('\n'):
                     current_stmt.append(line)
-                    
+
                     # Track if we're inside a function definition
                     if 'CREATE OR REPLACE FUNCTION' in line or 'CREATE FUNCTION' in line:
                         in_function = True
                     elif in_function and '$$ LANGUAGE' in line:
                         in_function = False
-                    
+
                     # If we hit a semicolon and we're not in a function, that's a statement boundary
                     if line.strip().endswith(';') and not in_function:
                         stmt = '\n'.join(current_stmt).strip()
                         if stmt and not stmt.startswith('--'):
                             statements.append(stmt)
                         current_stmt = []
-                
+
                 # Execute each statement
                 for stmt in statements:
                     if stmt.strip():
@@ -84,8 +85,12 @@ class DatabasePool:
                         except Exception as e:
                             # Log but don't fail on "already exists" errors
                             if 'already exists' not in str(e).lower():
-                                logger.warning("schema_statement_failed", error=str(e), statement=stmt[:100])
-                
+                                logger.warning(
+                    "schema_statement_failed",
+                    error=str(e),
+                    statement=stmt[:100],
+                )
+
                 logger.info("database_schema_executed", schema_path=schema_path)
 
         except FileNotFoundError:

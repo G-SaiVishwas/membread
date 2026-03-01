@@ -1,9 +1,9 @@
 """Graph Store: Temporal graph database for entity relationships."""
 
-import asyncpg
 from datetime import datetime
-from typing import Optional
-from uuid import UUID, uuid4
+from uuid import UUID
+
+import asyncpg
 import structlog
 
 from src.models import GraphNode, GraphRelationship
@@ -31,7 +31,7 @@ class GraphStore:
         properties: dict,
         valid_at: datetime,
         tenant_id: str,
-        source_observation_id: Optional[str] = None,
+        source_observation_id: str | None = None,
     ) -> str:
         """
         Create a new graph node with temporal validity.
@@ -53,7 +53,7 @@ class GraphStore:
 
                 node_id = await conn.fetchval(
                     """
-                    INSERT INTO graph_nodes 
+                    INSERT INTO graph_nodes
                     (tenant_id, entity_id, entity_type, properties, valid_at, source_observation_id)
                     VALUES ($1, $2, $3, $4, $5, $6)
                     RETURNING id
@@ -112,7 +112,7 @@ class GraphStore:
 
                 await self._set_tenant_context(conn, str(tenant_id))
 
-                result = await conn.execute(
+                await conn.execute(
                     """
                     UPDATE graph_nodes
                     SET invalid_at = $1
@@ -162,7 +162,7 @@ class GraphStore:
             async with self.pool.acquire() as conn:
                 rel_id = await conn.fetchval(
                     """
-                    INSERT INTO graph_relationships 
+                    INSERT INTO graph_relationships
                     (from_node_id, to_node_id, relationship_type, properties, valid_at)
                     VALUES ($1, $2, $3, $4, $5)
                     RETURNING id
@@ -198,7 +198,7 @@ class GraphStore:
         entity_id: str,
         timestamp: datetime,
         tenant_id: str,
-    ) -> Optional[GraphNode]:
+    ) -> GraphNode | None:
         """
         Retrieve entity state at a specific historical timestamp.
 
@@ -216,10 +216,10 @@ class GraphStore:
 
                 row = await conn.fetchrow(
                     """
-                    SELECT id, entity_id, entity_type, properties, 
+                    SELECT id, entity_id, entity_type, properties,
                            valid_at, invalid_at, tenant_id, source_observation_id
                     FROM graph_nodes
-                    WHERE tenant_id = $1 
+                    WHERE tenant_id = $1
                       AND entity_id = $2
                       AND valid_at <= $3
                       AND (invalid_at IS NULL OR invalid_at > $3)
@@ -317,7 +317,7 @@ class GraphStore:
     async def get_current_nodes(
         self,
         tenant_id: str,
-        entity_type: Optional[str] = None,
+        entity_type: str | None = None,
         limit: int = 100,
     ) -> list[GraphNode]:
         """
@@ -338,10 +338,10 @@ class GraphStore:
                 if entity_type:
                     rows = await conn.fetch(
                         """
-                        SELECT id, entity_id, entity_type, properties, 
+                        SELECT id, entity_id, entity_type, properties,
                                valid_at, invalid_at, tenant_id, source_observation_id
                         FROM graph_nodes
-                        WHERE tenant_id = $1 
+                        WHERE tenant_id = $1
                           AND entity_type = $2
                           AND invalid_at IS NULL
                         ORDER BY valid_at DESC
@@ -354,10 +354,10 @@ class GraphStore:
                 else:
                     rows = await conn.fetch(
                         """
-                        SELECT id, entity_id, entity_type, properties, 
+                        SELECT id, entity_id, entity_type, properties,
                                valid_at, invalid_at, tenant_id, source_observation_id
                         FROM graph_nodes
-                        WHERE tenant_id = $1 
+                        WHERE tenant_id = $1
                           AND invalid_at IS NULL
                         ORDER BY valid_at DESC
                         LIMIT $2
@@ -394,7 +394,7 @@ class GraphStore:
         self,
         node_id: str,
         direction: str = "outgoing",  # "outgoing", "incoming", "both"
-        relationship_type: Optional[str] = None,
+        relationship_type: str | None = None,
     ) -> list[GraphRelationship]:
         """
         Get relationships for a node.
@@ -417,7 +417,7 @@ class GraphStore:
                     where_clause = "(from_node_id = $1 OR to_node_id = $1)"
 
                 query = f"""
-                    SELECT id, from_node_id, to_node_id, relationship_type, 
+                    SELECT id, from_node_id, to_node_id, relationship_type,
                            properties, valid_at, invalid_at
                     FROM graph_relationships
                     WHERE {where_clause}

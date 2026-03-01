@@ -165,7 +165,13 @@ class HubSpotProvider(BaseProvider):
             # Update webhook target URL
             resp = await client.put(
                 f"{HUBSPOT_API}/webhooks/v3/{app_id}/settings",
-                json={"targetUrl": webhook_url, "throttling": {"maxConcurrentRequests": 10, "period": "SECONDLY"}},
+                json={
+                    "targetUrl": webhook_url,
+                    "throttling": {
+                        "maxConcurrentRequests": 10,
+                        "period": "SECONDLY",
+                    },
+                },
                 headers={"Authorization": f"Bearer {access_token}"},
             )
 

@@ -2,7 +2,7 @@
 
 import hashlib
 import json
-from datetime import datetime
+
 import structlog
 
 logger = structlog.get_logger()

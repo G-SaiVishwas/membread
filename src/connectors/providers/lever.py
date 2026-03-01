@@ -7,14 +7,11 @@ import hashlib
 import hmac
 import logging
 from datetime import datetime
+from typing import Any
 
 import httpx
 
-from typing import Any
-
 from src.connectors.oauth import OAuthConfig
-from typing import Any
-
 from src.connectors.providers.base import BaseProvider, MemoryItem
 
 logger = logging.getLogger("membread.providers.lever")
@@ -43,7 +40,12 @@ class LeverProvider(BaseProvider):
             token_url="https://auth.lever.co/oauth/token",
             client_id=client_id,
             client_secret=client_secret,
-            scopes=["offline_access", "candidates:read:admin", "opportunities:read:admin", "postings:read:admin"],
+            scopes=[
+                "offline_access",
+                "candidates:read:admin",
+                "opportunities:read:admin",
+                "postings:read:admin",
+            ],
             token_endpoint_auth="client_secret_post",
         )
 

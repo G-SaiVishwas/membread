@@ -1,8 +1,8 @@
 """JWT authentication for MCP requests."""
 
-import jwt
 from datetime import datetime, timedelta
-from typing import Optional, Dict
+
+import jwt
 import structlog
 
 from src.config import config
@@ -20,7 +20,7 @@ class JWTAuthenticator:
         self.secret = secret or config.jwt_secret
         self.algorithm = algorithm or config.jwt_algorithm
 
-    def validate_token(self, token: str) -> Dict[str, str]:
+    def validate_token(self, token: str) -> dict[str, str]:
         """
         Validate JWT token and extract claims.
 

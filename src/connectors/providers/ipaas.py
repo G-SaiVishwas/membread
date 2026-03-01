@@ -5,7 +5,6 @@ These are all webhook-only: the user configures the external tool to POST to our
 """
 
 import logging
-
 from typing import Any, cast
 
 from src.connectors.providers.base import BaseProvider, MemoryItem

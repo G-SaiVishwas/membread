@@ -8,13 +8,14 @@ Handles the full OAuth2 lifecycle:
 4. Token encryption via ConnectorDB
 """
 
-import os
-import hashlib
 import base64
-import secrets
+import hashlib
 import logging
-from datetime import datetime, timedelta, timezone
-from typing import Any, Callable
+import os
+import secrets
+from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
+from typing import Any
 from urllib.parse import urlencode
 
 import httpx
@@ -92,7 +93,7 @@ class OAuthEngine:
             "tenant_id": tenant_id,
             "connector_id": connector_id,
             "redirect_after": redirect_after or "http://localhost:3000/connectors",
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
             "oauth_config": oauth_config,  # Stored for handle_callback
         }
 
@@ -122,7 +123,10 @@ class OAuthEngine:
             params["code_challenge_method"] = "S256"
 
         url = f"{oauth_config.authorize_url}?{urlencode(params)}"
-        logger.info("OAuth flow started for %s tenant=%s state=%s", connector_id, tenant_id, state[:8])
+        logger.info(
+            "OAuth flow started for %s tenant=%s state=%s",
+            connector_id, tenant_id, state[:8],
+        )
         return url
 
     # ── Step 2: Handle callback ─────────────────────────────────────
@@ -146,7 +150,7 @@ class OAuthEngine:
 
         # Check expiry (10 minute window)
         created = datetime.fromisoformat(flow["created_at"])
-        if datetime.now(timezone.utc) - created > timedelta(minutes=10):
+        if datetime.now(UTC) - created > timedelta(minutes=10):
             raise ValueError("OAuth flow expired (>10 minutes)")
 
         # Use stored oauth_config if not explicitly provided
@@ -184,7 +188,10 @@ class OAuthEngine:
 
         if resp.status_code != 200:
             error_detail = resp.text[:500]
-            logger.error("OAuth token exchange failed for %s: %s", flow["connector_id"], error_detail)
+            logger.error(
+                "OAuth token exchange failed for %s: %s",
+                flow["connector_id"], error_detail,
+            )
             await self.db.update_connection_status(
                 flow["tenant_id"],
                 flow["connector_id"],
@@ -262,8 +269,14 @@ class OAuthEngine:
         try:
             resp = await self._http.post(oauth_config.token_url, data=data, headers=headers)
             if resp.status_code != 200:
-                logger.error("Token refresh failed for %s:%s — %s", tenant_id, connector_id, resp.status_code)
-                await self.db.record_cursor_error(tenant_id, connector_id, f"Token refresh failed: {resp.status_code}")
+                logger.error(
+                    "Token refresh failed for %s:%s — %s",
+                    tenant_id, connector_id, resp.status_code,
+                )
+                await self.db.record_cursor_error(
+                    tenant_id, connector_id,
+                    f"Token refresh failed: {resp.status_code}",
+                )
                 return None
 
             token_data = resp.json()
@@ -317,7 +330,10 @@ class OAuthEngine:
 
     # ── Auto-refresh background task ────────────────────────────────
 
-    async def refresh_expiring_tokens(self, get_oauth_config_fn: Callable[[str], OAuthConfig | None]) -> int:
+    async def refresh_expiring_tokens(
+        self,
+        get_oauth_config_fn: Callable[[str], OAuthConfig | None],
+    ) -> int:
         """Refresh all tokens expiring within 5 minutes.
 
         get_oauth_config_fn(connector_id) -> OAuthConfig or None

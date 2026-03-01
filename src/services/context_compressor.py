@@ -1,7 +1,7 @@
 """Context compression using mini-LLM."""
 
-import tiktoken
 import structlog
+import tiktoken
 from openai import AsyncOpenAI
 
 from src.config import config

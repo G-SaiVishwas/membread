@@ -6,8 +6,8 @@ import structlog
 from src.governor.conflict_resolver import ConflictResolver
 from src.governor.constraint_enforcer import ConstraintEnforcer
 from src.governor.lattice_crawler import LatticeCrawler
-from src.governor.routing_logic import RoutingLogic
 from src.governor.provenance_tracker import ProvenanceTracker
+from src.governor.routing_logic import RoutingLogic
 from src.memory_engine.graph_store import GraphStore
 from src.models import Operation, RoutingDecision, ValidationResult
 
