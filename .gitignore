@@ -1,8 +1,9 @@
-# Python
+# ── Python ──────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
+*.pyd
 .Python
 build/
 develop-eggs/
@@ -19,52 +20,87 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+*.manifest
+*.spec
+pip-log.txt
+pip-delete-this-directory.txt
 
 # Virtual environments
 venv/
 ENV/
 env/
-.venv
+.venv/
+.conda/
 
-# IDEs
+# ── Node / Frontend ────────────────────────────────────────────
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+.vite/
+*.tsbuildinfo
+.eslintcache
+.prettiercache
+package-lock.json
+frontend/package-lock.json
+
+# ── IDEs & Editors ─────────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.settings/
 
-# Environment variables
+# ── Environment variables ──────────────────────────────────────
 .env
-.env.local
+.env.*
+!.env.example
 
-# Database
+# ── Database ───────────────────────────────────────────────────
 *.db
 *.sqlite
 *.sqlite3
 fallback/
 
-# Logs
+# ── Logs ───────────────────────────────────────────────────────
 *.log
 logs/
 
-# Testing
+# ── Testing & Coverage ─────────────────────────────────────────
 .pytest_cache/
 .coverage
+.coverage.*
 htmlcov/
 .hypothesis/
+.tox/
+.nox/
+coverage.xml
+*.cover
+nosetests.xml
+junit*.xml
 
-# OS
+# ── OS generated ───────────────────────────────────────────────
 .DS_Store
 Thumbs.db
+Desktop.ini
+ehthumbs.db
+ehthumbs_vista.db
+*.lnk
 
-# Docker
+# ── Docker ─────────────────────────────────────────────────────
 .dockerignore
 
-# Node / Frontend
-node_modules/
-frontend/dist/
-frontend/.vite/
-*.tsbuildinfo
-
-# Temp scripts
+# ── Misc build / temp ──────────────────────────────────────────
+*.bak
+*.tmp
+*.temp
+*.orig
 _rename*.ps1
+.mypy_cache/
+.ruff_cache/
+.pytype/
