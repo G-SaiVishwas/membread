@@ -1,34 +1,74 @@
 version: '3.8'
 
 services:
+  # ── PostgreSQL + pgvector ──────────────────────────────────────────
   postgres:
     image: pgvector/pgvector:pg16
-    container_name: chronos-postgres
+    container_name: membread-postgres
     environment:
-      POSTGRES_DB: chronos
-      POSTGRES_USER: chronos
-      POSTGRES_PASSWORD: chronos_password
+      POSTGRES_DB: membread
+      POSTGRES_USER: membread
+      POSTGRES_PASSWORD: membread_password
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U chronos"]
+      test: ["CMD-SHELL", "pg_isready -U membread"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  chronos-mcp:
+  # ── FalkorDB (graph backend for Graphiti) ──────────────────────────
+  falkordb:
+    image: falkordb/falkordb:latest
+    container_name: membread-falkordb
+    ports:
+      - "6379:6379"   # Redis-compatible
+      - "7687:7687"   # Bolt protocol (used by Graphiti)
+    volumes:
+      - falkordb_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Ollama (local LLM — optional, for fully-local operation) ───────
+  ollama:
+    image: ollama/ollama:latest
+    container_name: membread-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    profiles:
+      - local-llm  # only starts with: docker compose --profile local-llm up
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # ── Membread / Membread API ────────────────────────────────────
+  membread:
     build: .
-    container_name: chronos-mcp
+    container_name: membread
     depends_on:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://chronos:chronos_password@postgres:5432/chronos
+      DATABASE_URL: postgresql://membread:membread_password@postgres:5432/membread
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       JWT_SECRET: ${JWT_SECRET:-dev-secret-key-change-in-production}
+      GRAPHITI_BACKEND: ${GRAPHITI_BACKEND:-falkordb}
+      GRAPHITI_URI: ${GRAPHITI_URI:-bolt://falkordb:7687}
+      ENABLE_TEMPORAL: ${ENABLE_TEMPORAL:-true}
+      LOCAL_LLM_BASE_URL: ${LOCAL_LLM_BASE_URL:-}
+      LOCAL_LLM_MODEL: ${LOCAL_LLM_MODEL:-llama3}
       LOG_LEVEL: INFO
       LOG_FORMAT: json
     stdin_open: true
@@ -37,17 +77,22 @@ services:
       - ./src:/app/src
       - ./schema.sql:/app/schema.sql
 
-  chronos-api:
+  membread-api:
     build: .
-    container_name: chronos-api
+    container_name: membread-api
     command: python -m src.api_main
     depends_on:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://chronos:chronos_password@postgres:5432/chronos
+      DATABASE_URL: postgresql://membread:membread_password@postgres:5432/membread
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       JWT_SECRET: ${JWT_SECRET:-dev-secret-key-change-in-production}
+      GRAPHITI_BACKEND: ${GRAPHITI_BACKEND:-falkordb}
+      GRAPHITI_URI: ${GRAPHITI_URI:-bolt://falkordb:7687}
+      ENABLE_TEMPORAL: ${ENABLE_TEMPORAL:-true}
+      LOCAL_LLM_BASE_URL: ${LOCAL_LLM_BASE_URL:-}
+      LOCAL_LLM_MODEL: ${LOCAL_LLM_MODEL:-llama3}
       LOG_LEVEL: INFO
       LOG_FORMAT: json
     ports:
@@ -56,13 +101,37 @@ services:
       - ./src:/app/src
       - ./schema.sql:/app/schema.sql
 
-  chronos-frontend:
-    image: nginx:alpine
-    container_name: chronos-frontend
+  # ── Streamlit Dashboard ────────────────────────────────────────────
+  dashboard:
+    build: .
+    container_name: membread-dashboard
+    command: >
+      streamlit run ui/dashboard.py
+      --server.port 8501
+      --server.headless true
+      --theme.base dark
+      --theme.primaryColor "#8b5cf6"
+    depends_on:
+      - membread-api
+    environment:
+      MEMBREAD_API: http://membread-api:8000
+      MEMBREAD_TOKEN: ${DASHBOARD_TOKEN:-}
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./ui:/app/ui
+    profiles:
+      - dashboard
+
+  membread-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: membread-frontend
     ports:
       - "3000:80"
-    volumes:
-      - ./frontend:/usr/share/nginx/html:ro
 
 volumes:
   postgres_data:
+  falkordb_data:
+  ollama_data:

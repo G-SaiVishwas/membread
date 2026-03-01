@@ -1,4 +1,4 @@
-"""HTTP API for ChronosMCP."""
+"""HTTP API for Membread."""
 
 from src.api.server import create_app
 

@@ -1,12 +1,23 @@
-"""Memory Engine: Core storage abstraction coordinating all stores."""
+"""Memory Engine: Core storage abstraction coordinating all stores.
+
+Orchestrates vector, graph, SQL, and — when enabled — the Graphiti
+bi-temporal knowledge graph engine.  The public API (store, recall) is
+fully backward-compatible; temporal features are additive.
+"""
 
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 import structlog
 
+from src.config import config as app_config
 from src.memory_engine.vector_store import VectorStore
 from src.memory_engine.graph_store import GraphStore
 from src.memory_engine.sql_store import SQLStore
+from src.memory_engine.engines.graphiti_engine import (
+    GraphitiEngine,
+    TemporalSearchResult,
+    EntityVersion,
+)
 from src.services.embedding_service import EmbeddingService
 from src.services.circuit_breaker import CircuitBreaker
 from src.services.context_compressor import ContextCompressor
@@ -37,6 +48,8 @@ class MemoryEngine:
         embedding_service: EmbeddingService,
         governor: Governor,
         context_compressor: ContextCompressor,
+        *,
+        graphiti_engine: GraphitiEngine | None = None,
     ):
         self.vector_store = vector_store
         self.graph_store = graph_store
@@ -45,6 +58,9 @@ class MemoryEngine:
         self.governor = governor
         self.context_compressor = context_compressor
         self.circuit_breaker = CircuitBreaker()
+
+        # Graphiti temporal knowledge-graph engine (optional, additive)
+        self.graphiti_engine: GraphitiEngine | None = graphiti_engine
 
     async def store_with_conflict_resolution(
         self,
@@ -127,6 +143,19 @@ class MemoryEngine:
                 tenant_id=tenant_id,
                 duration_ms=duration_ms,
             )
+
+            # ── Graphiti temporal episode ingestion ────────────────
+            if self.graphiti_engine is not None and self.graphiti_engine.is_available:
+                try:
+                    await self.graphiti_engine.add_episode(
+                        text=observation,
+                        group_id=tenant_id,
+                        timestamp=datetime.utcnow(),
+                        source=metadata.get("source", "api"),
+                        metadata=metadata,
+                    )
+                except Exception as gx:
+                    logger.warning("graphiti_episode_add_fallthrough", error=str(gx))
 
             return StoreResult(
                 observation_id=embedding_id,
@@ -220,6 +249,33 @@ class MemoryEngine:
                 duration_ms=duration_ms,
             )
 
+            # ── Merge Graphiti temporal results when available ──────
+            if self.graphiti_engine is not None and self.graphiti_engine.is_available:
+                try:
+                    temporal_hits = await self.graphiti_engine.search(
+                        query=query,
+                        group_id=tenant_id,
+                        limit=5,
+                    )
+                    for hit in temporal_hits:
+                        if hit.text and hit.text not in context:
+                            context_parts.append(
+                                f"[Temporal score: {hit.score:.3f}] {hit.text}"
+                            )
+                            sources.append(hit.id)
+
+                    # Re-join and re-compress if needed
+                    context = "\n\n".join(context_parts)
+                    token_count = self.context_compressor.count_tokens(context)
+                    if token_count > max_tokens:
+                        context = await self.context_compressor.compress(
+                            context=context, max_tokens=max_tokens, query=query
+                        )
+                        token_count = self.context_compressor.count_tokens(context)
+                        compressed = True
+                except Exception as gx:
+                    logger.warning("graphiti_search_fallthrough", error=str(gx))
+
             return RecallResult(
                 context=context,
                 sources=sources,
@@ -235,3 +291,57 @@ class MemoryEngine:
                 error=str(e),
             )
             raise
+
+    # ──────────────────────────────────────────────────────────────
+    # NEW — Temporal-first methods (powered by Graphiti)
+    # ──────────────────────────────────────────────────────────────
+
+    async def search_temporal(
+        self,
+        query: str,
+        tenant_id: str,
+        as_of: datetime | None = None,
+        *,
+        limit: int = 10,
+    ) -> list[TemporalSearchResult]:
+        """
+        Point-in-time "time-travel" search.
+
+        Returns what the system *knew* at ``as_of`` by filtering on
+        ``ingestion_time``.  When ``as_of`` is ``None``, behaves like
+        a normal hybrid search.
+        """
+        if self.graphiti_engine is None or not self.graphiti_engine.is_available:
+            return []
+
+        if as_of is not None:
+            return await self.graphiti_engine.search_temporal(
+                query=query, group_id=tenant_id, as_of=as_of, limit=limit
+            )
+        return await self.graphiti_engine.search(
+            query=query, group_id=tenant_id, limit=limit
+        )
+
+    async def get_entity_history(
+        self,
+        entity_name: str,
+        tenant_id: str,
+    ) -> list[EntityVersion]:
+        """Return every recorded version of a named entity."""
+        if self.graphiti_engine is None or not self.graphiti_engine.is_available:
+            return []
+        return await self.graphiti_engine.get_entity_history(
+            entity_name=entity_name, group_id=tenant_id
+        )
+
+    async def get_graph_data(
+        self,
+        tenant_id: str,
+        limit: int = 200,
+    ) -> dict[str, Any]:
+        """Return nodes / edges for dashboard visualisation."""
+        if self.graphiti_engine is None or not self.graphiti_engine.is_available:
+            return {"nodes": [], "edges": []}
+        return await self.graphiti_engine.get_graph_data(
+            group_id=tenant_id, limit=limit
+        )

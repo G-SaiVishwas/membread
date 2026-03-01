@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Membread</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { width: 320px; font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif; background: #fff; color: #111; }
+
+    .header { padding: 16px 16px 12px; border-bottom: 1px solid #f0f0f0; }
+    .header h1 { font-size: 16px; font-weight: 800; letter-spacing: -0.02em; }
+    .header p { font-size: 11px; color: #999; margin-top: 2px; }
+
+    .status-bar { display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: #fafafa; border-bottom: 1px solid #f0f0f0; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .status-dot.on { background: #22c55e; animation: pulse 2s infinite; }
+    .status-dot.off { background: #d1d5db; }
+    .status-text { font-size: 12px; font-weight: 600; }
+    .status-count { margin-left: auto; font-size: 11px; color: #999; }
+
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+    .section { padding: 12px 16px; }
+    .section-label { font-size: 10px; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+
+    .config-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .config-row label { font-size: 12px; font-weight: 600; min-width: 50px; }
+    .config-row input { flex: 1; padding: 6px 8px; font-size: 11px; border: 1px solid #e5e5e5; border-radius: 8px; outline: none; background: #fafafa; font-family: 'JetBrains Mono', monospace; }
+    .config-row input:focus { border-color: #111; background: #fff; }
+
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; }
+    .toggle-row span { font-size: 12px; font-weight: 600; }
+
+    .toggle { width: 36px; height: 20px; border-radius: 10px; background: #d1d5db; cursor: pointer; position: relative; transition: background 0.2s; }
+    .toggle.on { background: #111; }
+    .toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform 0.2s; }
+    .toggle.on::after { transform: translateX(16px); }
+
+    .btn { display: block; width: 100%; padding: 8px; font-size: 12px; font-weight: 700; text-align: center; border: 1px solid #e5e5e5; border-radius: 10px; background: #fff; cursor: pointer; transition: all 0.15s; }
+    .btn:hover { background: #111; color: #fff; border-color: #111; }
+
+    .footer { padding: 8px 16px 12px; text-align: center; }
+    .footer a { font-size: 10px; color: #999; text-decoration: none; }
+    .footer a:hover { color: #111; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Membread</h1>
+    <p>Memory capture for AI tools</p>
+  </div>
+
+  <div class="status-bar">
+    <div class="status-dot" id="statusDot"></div>
+    <span class="status-text" id="statusText">Loading...</span>
+    <span class="status-count" id="captureCount"></span>
+  </div>
+
+  <div class="section">
+    <div class="section-label">Configuration</div>
+
+    <div class="config-row">
+      <label>API URL</label>
+      <input type="text" id="apiUrl" placeholder="http://localhost:8000" />
+    </div>
+
+    <div class="config-row">
+      <label>Token</label>
+      <input type="password" id="token" placeholder="Bearer token" />
+    </div>
+
+    <div class="toggle-row">
+      <span>Capture enabled</span>
+      <div class="toggle" id="enableToggle"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <button class="btn" id="saveBtn">Save Configuration</button>
+  </div>
+
+  <div class="footer">
+    <a href="http://localhost:3000" target="_blank">Open Membread Dashboard</a>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

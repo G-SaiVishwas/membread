@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate JWT tokens for testing ChronosMCP."""
+"""Generate JWT tokens for testing Membread."""
 
 import sys
 sys.path.insert(0, ".")
@@ -10,7 +10,7 @@ from uuid import uuid4
 def main():
     """Generate test JWT tokens."""
     print("=" * 60)
-    print("ChronosMCP - JWT Token Generator")
+    print("Membread - JWT Token Generator")
     print("=" * 60)
     
     auth = JWTAuthenticator()

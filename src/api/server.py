@@ -1,9 +1,9 @@
-"""FastAPI HTTP server for ChronosMCP."""
+"""FastAPI HTTP server for Membread / Membread."""
 
 from fastapi import FastAPI, HTTPException, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional
+from typing import Any, Optional
 from datetime import datetime
 import structlog
 
@@ -56,6 +56,77 @@ class ProfileResponse(BaseModel):
     updated_at: str
 
 
+class ListItem(BaseModel):
+    id: str
+    text: str
+    metadata: dict
+
+
+class ListResponse(BaseModel):
+    items: list[ListItem]
+
+
+class CountResponse(BaseModel):
+    count: int
+
+
+# ── Temporal / Graphiti request/response models ──────────────────────
+class TemporalSearchRequest(BaseModel):
+    query: str
+    as_of: Optional[str] = None
+    limit: int = 10
+
+
+class TemporalHit(BaseModel):
+    id: str
+    text: str
+    score: float
+    event_time: Optional[str] = None
+    ingestion_time: Optional[str] = None
+    source: Optional[str] = None
+    graph_score: float = 0.0
+
+
+class TemporalSearchResponse(BaseModel):
+    results: list[TemporalHit]
+    as_of: Optional[str] = None
+
+
+class EntityHistoryRequest(BaseModel):
+    entity_name: str
+
+
+class EntityVersionOut(BaseModel):
+    entity_id: str
+    name: str
+    properties: dict[str, Any] = {}
+    valid_from: str
+    valid_until: Optional[str] = None
+
+
+class EntityHistoryResponse(BaseModel):
+    entity_name: str
+    versions: list[EntityVersionOut]
+
+
+class GraphDataResponse(BaseModel):
+    nodes: list[dict[str, Any]]
+    edges: list[dict[str, Any]]
+
+
+class CaptureRequest(BaseModel):
+    """Browser extension /capture payload."""
+    conversation: list[dict[str, Any]]
+    source: str = "browser_extension"
+    url: Optional[str] = None
+    title: Optional[str] = None
+
+
+class CaptureResponse(BaseModel):
+    episodes_ingested: int
+    message: str
+
+
 class TokenResponse(BaseModel):
     token: str
     tenant_id: str
@@ -77,7 +148,7 @@ def create_app(
     """Create FastAPI application."""
     
     app = FastAPI(
-        title="ChronosMCP API",
+        title="Membread API",
         description="Universal Temporal-Aware Memory Layer for AI Agents",
         version="0.1.0",
     )
@@ -223,6 +294,162 @@ def create_app(
             )
         except Exception as e:
             logger.error("get_profile_failed", error=str(e))
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.get("/api/memory/list", response_model=ListResponse)
+    async def list_memories(user: dict = Depends(get_current_user), limit: int = 50):
+        """Return recent observations for the authenticated user."""
+        try:
+            results = await memory_engine.vector_store.list_embeddings(
+                tenant_id=user["tenant_id"],
+                user_id=user["user_id"],
+                limit=limit,
+            )
+            return ListResponse(
+                items=[ListItem(id=r.id, text=r.text, metadata=r.metadata) for r in results]
+            )
+        except Exception as e:
+            logger.error("list_memories_failed", error=str(e))
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.get("/api/memory/count", response_model=CountResponse)
+    async def count_memories(user: dict = Depends(get_current_user)):
+        """Return total count of embeddings for the user."""
+        try:
+            count = await memory_engine.vector_store.get_embedding_count(
+                tenant_id=user["tenant_id"],
+                user_id=user["user_id"],
+            )
+            return CountResponse(count=count)
+        except Exception as e:
+            logger.error("count_memories_failed", error=str(e))
+            raise HTTPException(status_code=500, detail=str(e))
+
+    # ── Temporal / Graphiti endpoints ─────────────────────────────────
+
+    @app.post("/api/memory/search/temporal", response_model=TemporalSearchResponse)
+    async def temporal_search(
+        request: TemporalSearchRequest,
+        user: dict = Depends(get_current_user),
+    ):
+        """
+        Bi-temporal «time-travel» search.
+
+        When `as_of` is provided, returns what the system knew at that
+        point in time.  Otherwise behaves like a normal hybrid search
+        powered by the Graphiti knowledge graph.
+        """
+        try:
+            as_of_dt = None
+            if request.as_of:
+                as_of_dt = datetime.fromisoformat(request.as_of)
+
+            hits = await memory_engine.search_temporal(
+                query=request.query,
+                tenant_id=user["tenant_id"],
+                as_of=as_of_dt,
+                limit=request.limit,
+            )
+
+            return TemporalSearchResponse(
+                results=[
+                    TemporalHit(
+                        id=h.id,
+                        text=h.text,
+                        score=h.score,
+                        event_time=h.event_time.isoformat() if h.event_time else None,
+                        ingestion_time=h.ingestion_time.isoformat() if h.ingestion_time else None,
+                        source=h.source,
+                        graph_score=h.graph_score,
+                    )
+                    for h in hits
+                ],
+                as_of=request.as_of,
+            )
+        except Exception as e:
+            logger.error("temporal_search_failed", error=str(e))
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.post("/api/memory/entity/history", response_model=EntityHistoryResponse)
+    async def entity_history(
+        request: EntityHistoryRequest,
+        user: dict = Depends(get_current_user),
+    ):
+        """Retrieve every recorded version of a named entity."""
+        try:
+            versions = await memory_engine.get_entity_history(
+                entity_name=request.entity_name,
+                tenant_id=user["tenant_id"],
+            )
+            return EntityHistoryResponse(
+                entity_name=request.entity_name,
+                versions=[
+                    EntityVersionOut(
+                        entity_id=v.entity_id,
+                        name=v.name,
+                        properties=v.properties,
+                        valid_from=v.valid_from.isoformat(),
+                        valid_until=v.valid_until.isoformat() if v.valid_until else None,
+                    )
+                    for v in versions
+                ],
+            )
+        except Exception as e:
+            logger.error("entity_history_failed", error=str(e))
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.get("/api/memory/graph", response_model=GraphDataResponse)
+    async def graph_data(
+        user: dict = Depends(get_current_user),
+        limit: int = 200,
+    ):
+        """Return nodes & edges for the interactive graph dashboard."""
+        try:
+            data = await memory_engine.get_graph_data(
+                tenant_id=user["tenant_id"],
+                limit=limit,
+            )
+            return GraphDataResponse(nodes=data["nodes"], edges=data["edges"])
+        except Exception as e:
+            logger.error("graph_data_failed", error=str(e))
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.post("/api/capture", response_model=CaptureResponse)
+    async def capture_conversation(
+        request: CaptureRequest,
+        user: dict = Depends(get_current_user),
+    ):
+        """
+        Browser extension hook — accepts a ChatGPT / Claude conversation
+        payload and ingests each message as a temporal episode.
+        """
+        try:
+            count = 0
+            for msg in request.conversation:
+                role = msg.get("role", "user")
+                content = msg.get("content", "")
+                if not content:
+                    continue
+
+                await memory_engine.store_with_conflict_resolution(
+                    observation=content,
+                    metadata={
+                        "source": request.source,
+                        "role": role,
+                        "url": request.url or "",
+                        "title": request.title or "",
+                    },
+                    tenant_id=user["tenant_id"],
+                    user_id=user["user_id"],
+                )
+                count += 1
+
+            return CaptureResponse(
+                episodes_ingested=count,
+                message=f"Captured {count} messages from {request.source}",
+            )
+        except Exception as e:
+            logger.error("capture_conversation_failed", error=str(e))
             raise HTTPException(status_code=500, detail=str(e))
 
     return app

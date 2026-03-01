@@ -1,4 +1,4 @@
--- ChronosMCP Database Schema
+-- Membread Database Schema
 -- Universal Temporal-Aware Memory Layer
 -- PostgreSQL with pgvector extension
 
@@ -351,9 +351,9 @@ ON CONFLICT DO NOTHING;
 
 -- Grant necessary permissions to application role
 -- Note: In production, create a specific role with limited permissions
--- GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO chronos_app;
--- GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO chronos_app;
--- GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO chronos_app;
+-- GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO membread_app;
+-- GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO membread_app;
+-- GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO membread_app;
 
 -- ============================================================================
 -- COMMENTS

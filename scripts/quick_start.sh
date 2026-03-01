@@ -1,10 +1,10 @@
 #!/bin/bash
-# Quick start script for ChronosMCP
+# Quick start script for Membread
 
 set -e
 
 echo "=========================================="
-echo "ChronosMCP Quick Start"
+echo "Membread Quick Start"
 echo "=========================================="
 
 # Check if .env exists
@@ -25,7 +25,7 @@ echo "✅ Environment configured"
 
 # Start services
 echo ""
-echo "Starting PostgreSQL and ChronosMCP..."
+echo "Starting PostgreSQL and Membread..."
 docker-compose up -d
 
 echo ""
@@ -33,12 +33,12 @@ echo "Waiting for services to be ready..."
 sleep 10
 
 echo ""
-echo "✅ ChronosMCP is running!"
+echo "✅ Membread is running!"
 echo ""
 echo "Next steps:"
 echo "1. Generate a test token: python scripts/generate_token.py"
 echo "2. Run the demo: python demo.py"
-echo "3. Check logs: docker-compose logs -f chronos-mcp"
+echo "3. Check logs: docker-compose logs -f membread"
 echo ""
 echo "To stop: docker-compose down"
 echo "=========================================="

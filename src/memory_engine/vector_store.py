@@ -246,3 +246,71 @@ class VectorStore:
                 error=str(e),
             )
             raise
+
+    async def list_embeddings(
+        self,
+        tenant_id: str,
+        user_id: Optional[str] = None,
+        limit: int = 50,
+    ) -> list[SearchResult]:
+        """
+        Return recent embeddings (observations) for display.
+
+        Args:
+            tenant_id: Tenant identifier
+            user_id: Optional user filter
+            limit: Number of items to return (most recent first)
+
+        Returns:
+            List of SearchResult objects with text and metadata (score unused)
+        """
+        try:
+            async with self.pool.acquire() as conn:
+                await self._set_tenant_context(conn, tenant_id)
+
+                if user_id:
+                    rows = await conn.fetch(
+                        """
+                        SELECT id, text, metadata
+                        FROM embeddings
+                        WHERE tenant_id = $1 AND user_id = $2
+                        ORDER BY created_at DESC
+                        LIMIT $3
+                        """,
+                        UUID(tenant_id),
+                        UUID(user_id),
+                        limit,
+                    )
+                else:
+                    rows = await conn.fetch(
+                        """
+                        SELECT id, text, metadata
+                        FROM embeddings
+                        WHERE tenant_id = $1
+                        ORDER BY created_at DESC
+                        LIMIT $2
+                        """,
+                        UUID(tenant_id),
+                        limit,
+                    )
+
+                results = [
+                    SearchResult(
+                        id=str(row["id"]),
+                        text=row["text"],
+                        metadata=row["metadata"],
+                        score=0.0,
+                        fallback=False,
+                    )
+                    for row in rows
+                ]
+
+                return results
+
+        except Exception as e:
+            logger.error(
+                "vector_store_list_embeddings_failed",
+                tenant_id=tenant_id,
+                error=str(e),
+            )
+            raise

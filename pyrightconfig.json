@@ -1,0 +1,16 @@
+{
+  "include": ["src", "sdk"],
+  "typeCheckingMode": "basic",
+  "reportMissingTypeStubs": false,
+  "reportMissingTypeArgument": false,
+  "reportUnknownMemberType": false,
+  "reportUnknownVariableType": false,
+  "reportUnknownArgumentType": false,
+  "reportUnknownParameterType": false,
+  "reportUnknownLambdaType": false,
+  "reportUnnecessaryIsInstance": "warning",
+  "reportDeprecated": "warning",
+  "reportUnusedImport": "warning",
+  "reportMissingParameterType": "warning",
+  "pythonVersion": "3.11"
+}

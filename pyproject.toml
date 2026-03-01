@@ -1,13 +1,13 @@
 [project]
-name = "chronos-mcp"
-version = "0.1.0"
-description = "Universal Temporal-Aware Memory Layer for AI Agents"
+name = "membread"
+version = "0.1.1"
+description = "Membread — Bi-Temporal Knowledge Graph Memory Layer for AI Agents"
 authors = [
-    {name = "ChronosMCP Team"}
+    {name = "Asmita Mallick"}
 ]
 readme = "README.md"
 requires-python = ">=3.11"
-license = {text = "MIT"}
+license = {text = "Apache-2.0"}
 
 dependencies = [
     "asyncpg>=0.29.0",
@@ -23,9 +23,13 @@ dependencies = [
     "structlog>=24.1.0",
     "fastapi>=0.109.0",
     "uvicorn[standard]>=0.27.0",
+    "graphiti-core>=0.5",
 ]
 
 [project.optional-dependencies]
+falkordb = ["graphiti-core[falkordb]"]
+kuzu = ["kuzu>=0.4"]
+dashboard = ["streamlit>=1.32", "streamlit-agraph>=0.0.45", "requests", "plotly>=5.18", "pandas>=2.0"]
 dev = [
     "pytest>=7.4.0",
     "pytest-asyncio>=0.21.0",

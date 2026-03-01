@@ -1,4 +1,4 @@
-# ChronosMCP Dockerfile
+# Membread Dockerfile
 FROM python:3.11-slim
 
 # Set working directory
@@ -22,10 +22,10 @@ COPY src/ ./src/
 COPY schema.sql ./
 
 # Create non-root user
-RUN useradd -m -u 1000 chronos && \
-    chown -R chronos:chronos /app
+RUN useradd -m -u 1000 membread && \
+    chown -R membread:membread /app
 
-USER chronos
+USER membread
 
 # Expose port (if needed for HTTP transport)
 EXPOSE 8000

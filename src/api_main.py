@@ -1,4 +1,4 @@
-"""HTTP API entry point for ChronosMCP."""
+"""HTTP API entry point for Membread."""
 
 import asyncio
 import uvicorn
@@ -11,6 +11,7 @@ from src.memory_engine.vector_store import VectorStore
 from src.memory_engine.graph_store import GraphStore
 from src.memory_engine.sql_store import SQLStore
 from src.memory_engine.memory_engine import MemoryEngine
+from src.memory_engine.engines.graphiti_engine import GraphitiEngine
 from src.services.embedding_service import EmbeddingService
 from src.services.context_compressor import ContextCompressor
 from src.governor.governor import Governor
@@ -40,7 +41,7 @@ logger = structlog.get_logger()
 
 async def initialize_system():
     """Initialize all system components."""
-    logger.info("chronos_mcp_api_initializing", version="0.1.0")
+    logger.info("membread_api_initializing", version="0.1.0")
 
     # Validate configuration
     config.validate_required()
@@ -68,6 +69,13 @@ async def initialize_system():
     governor = Governor(pool, graph_store)
     await governor.initialize()
 
+    # Initialize Graphiti temporal engine (optional)
+    graphiti_engine: GraphitiEngine | None = None
+    if config.enable_temporal:
+        graphiti_engine = GraphitiEngine(config)
+        await graphiti_engine.initialize()
+        logger.info("graphiti_engine_status", available=graphiti_engine.is_available)
+
     # Initialize memory engine
     memory_engine = MemoryEngine(
         vector_store=vector_store,
@@ -76,6 +84,7 @@ async def initialize_system():
         embedding_service=embedding_service,
         governor=governor,
         context_compressor=context_compressor,
+        graphiti_engine=graphiti_engine,
     )
 
     # Initialize authenticator
@@ -88,7 +97,7 @@ async def initialize_system():
         authenticator=authenticator,
     )
 
-    logger.info("chronos_mcp_api_initialized")
+    logger.info("membread_api_initialized")
 
     return app
 

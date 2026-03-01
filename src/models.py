@@ -1,4 +1,4 @@
-"""Core data models for ChronosMCP."""
+"""Core data models for Membread."""
 
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -194,43 +194,43 @@ class CircuitBreakerState(Enum):
 
 
 # Exception classes
-class ChronosMCPError(Exception):
-    """Base exception for ChronosMCP."""
+class MembreadError(Exception):
+    """Base exception for Membread."""
 
     pass
 
 
-class AuthenticationError(ChronosMCPError):
+class AuthenticationError(MembreadError):
     """Authentication failed."""
 
     pass
 
 
-class AuthorizationError(ChronosMCPError):
+class AuthorizationError(MembreadError):
     """Authorization failed (privilege violation)."""
 
     pass
 
 
-class ValidationError(ChronosMCPError):
+class ValidationError(MembreadError):
     """Validation failed (injection detected, invalid format)."""
 
     pass
 
 
-class ConflictError(ChronosMCPError):
+class ConflictError(MembreadError):
     """Conflict detected (optimistic concurrency failure)."""
 
     pass
 
 
-class PerformanceError(ChronosMCPError):
+class PerformanceError(MembreadError):
     """Performance threshold exceeded."""
 
     pass
 
 
-class InfrastructureError(ChronosMCPError):
+class InfrastructureError(MembreadError):
     """Infrastructure failure (database, API)."""
 
     pass
@@ -242,13 +242,34 @@ class CircuitBreakerOpenError(InfrastructureError):
     pass
 
 
-class RetryableError(ChronosMCPError):
+class RetryableError(MembreadError):
     """Error that can be retried."""
 
     pass
 
 
-class MaxRetriesExceededError(ChronosMCPError):
+class MaxRetriesExceededError(MembreadError):
     """Maximum retry attempts exceeded."""
 
     pass
+
+
+# ── Temporal / Graphiti models ──────────────────────────────────────────────
+# Canonical definitions live in src.memory_engine.engines.graphiti_engine
+# to avoid circular imports.  Re-export here for convenience.
+
+from src.memory_engine.engines.graphiti_engine import (
+    TemporalSearchResult,
+    EntityVersion,
+)
+
+
+@dataclass
+class CapturePayload:
+    """Payload received from the browser extension /capture endpoint."""
+
+    conversation: list[dict[str, Any]]
+    source: str = "browser_extension"
+    url: Optional[str] = None
+    title: Optional[str] = None
+    captured_at: Optional[datetime] = None

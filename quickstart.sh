@@ -1,10 +1,10 @@
 #!/bin/bash
-# ChronosMCP Quick Start Script
+# Membread Quick Start Script
 
 set -e
 
 echo "=================================================="
-echo "ChronosMCP - Quick Start"
+echo "Membread - Quick Start"
 echo "=================================================="
 
 # Check if .env exists
@@ -40,7 +40,7 @@ echo "✅ Docker and Docker Compose found"
 
 # Start services
 echo ""
-echo "🚀 Starting ChronosMCP services..."
+echo "🚀 Starting Membread services..."
 docker-compose up -d
 
 echo ""
@@ -52,7 +52,7 @@ if docker-compose ps | grep -q "Up"; then
     echo "✅ Services are running!"
     echo ""
     echo "=================================================="
-    echo "ChronosMCP is ready!"
+    echo "Membread is ready!"
     echo "=================================================="
     echo ""
     echo "📊 Service Status:"
@@ -66,7 +66,7 @@ if docker-compose ps | grep -q "Up"; then
     echo "     python demo.py"
     echo ""
     echo "  3. View logs:"
-    echo "     docker-compose logs -f chronos-mcp"
+    echo "     docker-compose logs -f membread"
     echo ""
     echo "  4. Stop services:"
     echo "     docker-compose down"

@@ -1,10 +1,10 @@
-# ChronosMCP Deployment Guide
+# Membread Deployment Guide
 
 ## Deployment Options
 
-ChronosMCP can be deployed in three ways:
+Membread can be deployed in three ways:
 
-### 1. MCP Server (Recommended for Hackathon Demo)
+### 1. MCP Server (Recommended for Local Development)
 
 **Use Case**: Connect to Claude Desktop, Cursor, or any MCP-compatible client
 
@@ -17,9 +17,9 @@ docker-compose up -d
 # Edit: ~/Library/Application Support/Claude/claude_desktop_config.json
 {
   "mcpServers": {
-    "chronos-mcp": {
+    "membread": {
       "command": "docker",
-      "args": ["exec", "-i", "chronos-mcp", "python", "-m", "src.main"]
+      "args": ["exec", "-i", "membread", "python", "-m", "src.main"]
     }
   }
 }
@@ -49,7 +49,7 @@ docker-compose up -d
 
 **Architecture**:
 ```
-Internet → Load Balancer → ChronosMCP Instances → PostgreSQL (RDS/Cloud SQL)
+Internet → Load Balancer → Membread Instances → PostgreSQL (RDS/Cloud SQL)
 ```
 
 **Pros**:
@@ -124,7 +124,7 @@ result = await memory_engine.store_with_conflict_resolution(...)
 ```bash
 # Required
 OPENAI_API_KEY=sk-prod-key-here
-DATABASE_URL=postgresql://user:pass@prod-db:5432/chronos
+DATABASE_URL=postgresql://user:pass@prod-db:5432/membread
 JWT_SECRET=long-random-secret-min-32-chars
 
 # Performance
@@ -151,7 +151,7 @@ METRICS_PORT=9090
 - Optimize database indexes
 
 ### Horizontal Scaling
-- Run multiple ChronosMCP instances behind load balancer
+- Run multiple Membread instances behind load balancer
 - Use PostgreSQL connection pooler (PgBouncer)
 - Implement caching layer (Redis)
 
@@ -182,7 +182,7 @@ METRICS_PORT=9090
 ### Database Backups
 ```bash
 # Daily full backup
-pg_dump -h localhost -U chronos chronos > backup_$(date +%Y%m%d).sql
+pg_dump -h localhost -U membread membread > backup_$(date +%Y%m%d).sql
 
 # Continuous WAL archiving for point-in-time recovery
 ```
@@ -200,7 +200,7 @@ pg_dump -h localhost -U chronos chronos > backup_$(date +%Y%m%d).sql
 **Recovery Steps**:
 1. Restore PostgreSQL from latest backup
 2. Apply WAL logs for point-in-time recovery
-3. Start ChronosMCP instances
+3. Start Membread instances
 4. Verify data integrity
 5. Resume traffic
 
@@ -249,5 +249,5 @@ pg_dump -h localhost -U chronos chronos > backup_$(date +%Y%m%d).sql
 
 For production support:
 - GitHub Issues: <repo-url>/issues
-- Email: support@chronos-mcp.example
-- Slack: #chronos-mcp-support
+- Email: support@membread.example
+- Slack: #membread-support

@@ -31,7 +31,7 @@ class MCPServer:
         self.memory_engine = memory_engine
         self.sql_store = sql_store
         self.authenticator = authenticator
-        self.server = Server("chronos-mcp")
+        self.server = Server("membread")
 
         # Register tools
         self._register_tools()
@@ -43,7 +43,7 @@ class MCPServer:
         async def list_tools() -> list[Tool]:
             return [
                 Tool(
-                    name="chronos_store_observation",
+                    name="membread_store_observation",
                     description="Store an unstructured observation with temporal metadata",
                     inputSchema={
                         "type": "object",
@@ -65,7 +65,7 @@ class MCPServer:
                     },
                 ),
                 Tool(
-                    name="chronos_recall_context",
+                    name="membread_recall_context",
                     description="Retrieve relevant context with optional time-travel",
                     inputSchema={
                         "type": "object",
@@ -92,7 +92,7 @@ class MCPServer:
                     },
                 ),
                 Tool(
-                    name="chronos_get_profile",
+                    name="membread_get_profile",
                     description="Return structured user profile data",
                     inputSchema={
                         "type": "object",
@@ -111,11 +111,11 @@ class MCPServer:
         async def call_tool(name: str, arguments: Any) -> list[TextContent]:
             """Handle tool calls."""
             try:
-                if name == "chronos_store_observation":
+                if name == "membread_store_observation":
                     return await self._handle_store_observation(arguments)
-                elif name == "chronos_recall_context":
+                elif name == "membread_recall_context":
                     return await self._handle_recall_context(arguments)
-                elif name == "chronos_get_profile":
+                elif name == "membread_get_profile":
                     return await self._handle_get_profile(arguments)
                 else:
                     return [TextContent(type="text", text=f"Unknown tool: {name}")]
@@ -125,7 +125,7 @@ class MCPServer:
                 return [TextContent(type="text", text=f"Error: {str(e)}")]
 
     async def _handle_store_observation(self, arguments: dict) -> list[TextContent]:
-        """Handle chronos_store_observation tool call."""
+        """Handle membread_store_observation tool call."""
         observation = arguments.get("observation", "")
         metadata = arguments.get("metadata", {})
         token = arguments.get("token", "")
@@ -154,7 +154,7 @@ Conflicts Resolved: {result.conflicts_resolved}
         return [TextContent(type="text", text=response)]
 
     async def _handle_recall_context(self, arguments: dict) -> list[TextContent]:
-        """Handle chronos_recall_context tool call."""
+        """Handle membread_recall_context tool call."""
         query = arguments.get("query", "")
         token = arguments.get("token", "")
         time_travel_ts_str = arguments.get("time_travel_ts")
@@ -192,7 +192,7 @@ Compressed: {result.compressed}
         return [TextContent(type="text", text=response)]
 
     async def _handle_get_profile(self, arguments: dict) -> list[TextContent]:
-        """Handle chronos_get_profile tool call."""
+        """Handle membread_get_profile tool call."""
         token = arguments.get("token", "")
 
         # Authenticate

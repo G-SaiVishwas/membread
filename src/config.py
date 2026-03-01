@@ -1,4 +1,4 @@
-"""Configuration management for ChronosMCP."""
+"""Configuration management for Membread."""
 
 import os
 from typing import Optional
@@ -10,12 +10,12 @@ load_dotenv()
 
 
 class Config(BaseModel):
-    """ChronosMCP configuration from environment variables."""
+    """Membread configuration from environment variables."""
 
     # Database
     database_url: str = Field(
         default_factory=lambda: os.getenv(
-            "DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/chronos"
+            "DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/membread"
         )
     )
     database_pool_min_size: int = Field(
@@ -80,10 +80,51 @@ class Config(BaseModel):
         default_factory=lambda: os.getenv("SQLITE_FALLBACK_PATH", "./fallback")
     )
 
+    # ── Graphiti / Temporal Knowledge Graph ─────────────────────────────
+    graphiti_backend: str = Field(
+        default_factory=lambda: os.getenv("GRAPHITI_BACKEND", "memory"),
+        description="Graph backend: 'falkordb', 'neo4j', 'kuzu', or 'memory' (in-memory fallback)",
+    )
+    graphiti_uri: str = Field(
+        default_factory=lambda: os.getenv("GRAPHITI_URI", "bolt://localhost:7687"),
+        description="Connection URI for the graph database",
+    )
+    enable_temporal: bool = Field(
+        default_factory=lambda: os.getenv("ENABLE_TEMPORAL", "true").lower() in ("1", "true", "yes"),
+        description="Enable bi-temporal knowledge graph via Graphiti",
+    )
+    local_llm_base_url: str = Field(
+        default_factory=lambda: os.getenv("LOCAL_LLM_BASE_URL", ""),
+        description="OpenAI-compatible base URL for local LLM (e.g. Ollama http://localhost:11434/v1)",
+    )
+    local_llm_model: str = Field(
+        default_factory=lambda: os.getenv("LOCAL_LLM_MODEL", "llama3"),
+        description="Model name served by the local LLM endpoint",
+    )
+    local_embedding_model: str = Field(
+        default_factory=lambda: os.getenv("LOCAL_EMBEDDING_MODEL", "nomic-embed-text"),
+        description="Embedding model served by the local endpoint",
+    )
+    graphiti_llm_model: str = Field(
+        default_factory=lambda: os.getenv("GRAPHITI_LLM_MODEL", "gpt-4o-mini"),
+        description="LLM model for Graphiti entity extraction (used when OpenAI key is set)",
+    )
+    summarise_every_n: int = Field(
+        default_factory=lambda: int(os.getenv("SUMMARISE_EVERY_N", "100")),
+        description="Run auto-summarisation after every N episodes",
+    )
+
     def validate_required(self) -> None:
-        """Validate that required configuration is present."""
-        if not self.openai_api_key:
-            raise ValueError("OPENAI_API_KEY environment variable is required")
+        """Validate that required configuration is present.
+
+        When ``local_llm_base_url`` is set, an OpenAI key is no longer
+        mandatory — the system can run fully local via Ollama.
+        """
+        if not self.openai_api_key and not self.local_llm_base_url:
+            raise ValueError(
+                "Set OPENAI_API_KEY or LOCAL_LLM_BASE_URL (e.g. http://localhost:11434/v1) "
+                "to enable embeddings and LLM features."
+            )
         if not self.jwt_secret or self.jwt_secret == "dev-secret-key":
             import warnings
 
