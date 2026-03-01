@@ -18,11 +18,10 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
-import os
 import sys
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -95,9 +94,18 @@ LOCOMO_MINI: list[dict[str, Any]] = [
         "id": "tq_01",
         "category": "temporal",
         "episodes": [
-            {"text": "Alice started working at Google in January 2024.", "ts": "2024-01-15T10:00:00Z"},
-            {"text": "Alice moved from Google to Meta in August 2024.", "ts": "2024-08-01T09:00:00Z"},
-            {"text": "Alice was promoted to staff engineer at Meta in December 2024.", "ts": "2024-12-10T14:00:00Z"},
+            {
+                "text": "Alice started working at Google in January 2024.",
+                "ts": "2024-01-15T10:00:00Z",
+            },
+            {
+                "text": "Alice moved from Google to Meta in August 2024.",
+                "ts": "2024-08-01T09:00:00Z",
+            },
+            {
+                "text": "Alice was promoted to staff engineer at Meta in December 2024.",
+                "ts": "2024-12-10T14:00:00Z",
+            },
         ],
         "question": "Where did Alice work in March 2024?",
         "answer": "Google",
@@ -107,8 +115,14 @@ LOCOMO_MINI: list[dict[str, Any]] = [
         "id": "tq_02",
         "category": "temporal",
         "episodes": [
-            {"text": "Bob's favorite programming language is Python.", "ts": "2024-02-01T08:00:00Z"},
-            {"text": "Bob switched from Python to Rust as his primary language.", "ts": "2024-09-15T11:00:00Z"},
+            {
+                "text": "Bob's favorite programming language is Python.",
+                "ts": "2024-02-01T08:00:00Z",
+            },
+            {
+                "text": "Bob switched from Python to Rust as his primary language.",
+                "ts": "2024-09-15T11:00:00Z",
+            },
         ],
         "question": "What was Bob's favorite language in June 2024?",
         "answer": "Python",
@@ -118,8 +132,14 @@ LOCOMO_MINI: list[dict[str, Any]] = [
         "id": "tq_03",
         "category": "temporal",
         "episodes": [
-            {"text": "The project codenamed Phoenix launched on 2024-03-01.", "ts": "2024-03-01T00:00:00Z"},
-            {"text": "Phoenix was renamed to Falcon on 2024-07-20.", "ts": "2024-07-20T12:00:00Z"},
+            {
+                "text": "The project codenamed Phoenix launched on 2024-03-01.",
+                "ts": "2024-03-01T00:00:00Z",
+            },
+            {
+                "text": "Phoenix was renamed to Falcon on 2024-07-20.",
+                "ts": "2024-07-20T12:00:00Z",
+            },
         ],
         "question": "What was the project called in May 2024?",
         "answer": "Phoenix",
@@ -129,8 +149,14 @@ LOCOMO_MINI: list[dict[str, Any]] = [
         "id": "tq_04",
         "category": "temporal",
         "episodes": [
-            {"text": "Carol lived in San Francisco since 2020.", "ts": "2024-01-01T00:00:00Z"},
-            {"text": "Carol relocated from San Francisco to Austin in October 2024.", "ts": "2024-10-01T09:00:00Z"},
+            {
+                "text": "Carol lived in San Francisco since 2020.",
+                "ts": "2024-01-01T00:00:00Z",
+            },
+            {
+                "text": "Carol relocated from San Francisco to Austin in October 2024.",
+                "ts": "2024-10-01T09:00:00Z",
+            },
         ],
         "question": "Where did Carol live in July 2024?",
         "answer": "San Francisco",
@@ -140,8 +166,14 @@ LOCOMO_MINI: list[dict[str, Any]] = [
         "id": "tq_05",
         "category": "temporal",
         "episodes": [
-            {"text": "The company used Slack for team communication.", "ts": "2024-01-10T08:00:00Z"},
-            {"text": "The company switched from Slack to Microsoft Teams in June 2024.", "ts": "2024-06-15T10:00:00Z"},
+            {
+                "text": "The company used Slack for team communication.",
+                "ts": "2024-01-10T08:00:00Z",
+            },
+            {
+                "text": "The company switched from Slack to Microsoft Teams in June 2024.",
+                "ts": "2024-06-15T10:00:00Z",
+            },
         ],
         "question": "What communication tool did the company use in April 2024?",
         "answer": "Slack",
@@ -151,9 +183,18 @@ LOCOMO_MINI: list[dict[str, Any]] = [
         "id": "pit_01",
         "category": "point-in-time",
         "episodes": [
-            {"text": "Server capacity was 100 requests per second.", "ts": "2024-02-01T00:00:00Z"},
-            {"text": "Server capacity was upgraded to 500 requests per second.", "ts": "2024-05-01T00:00:00Z"},
-            {"text": "Server capacity was further upgraded to 2000 requests per second.", "ts": "2024-08-01T00:00:00Z"},
+            {
+                "text": "Server capacity was 100 requests per second.",
+                "ts": "2024-02-01T00:00:00Z",
+            },
+            {
+                "text": "Server capacity was upgraded to 500 requests per second.",
+                "ts": "2024-05-01T00:00:00Z",
+            },
+            {
+                "text": "Server capacity was further upgraded to 2000 requests per second.",
+                "ts": "2024-08-01T00:00:00Z",
+            },
         ],
         "question": "What was the server capacity in March 2024?",
         "answer": "100",
@@ -163,9 +204,18 @@ LOCOMO_MINI: list[dict[str, Any]] = [
         "id": "pit_02",
         "category": "point-in-time",
         "episodes": [
-            {"text": "The team size was 8 engineers in Q1 2024.", "ts": "2024-01-15T00:00:00Z"},
-            {"text": "The team grew to 15 engineers by Q3 2024.", "ts": "2024-07-01T00:00:00Z"},
-            {"text": "The team expanded to 25 engineers by end of 2024.", "ts": "2024-11-01T00:00:00Z"},
+            {
+                "text": "The team size was 8 engineers in Q1 2024.",
+                "ts": "2024-01-15T00:00:00Z",
+            },
+            {
+                "text": "The team grew to 15 engineers by Q3 2024.",
+                "ts": "2024-07-01T00:00:00Z",
+            },
+            {
+                "text": "The team expanded to 25 engineers by end of 2024.",
+                "ts": "2024-11-01T00:00:00Z",
+            },
         ],
         "question": "How many engineers were on the team in February 2024?",
         "answer": "8",
@@ -175,8 +225,14 @@ LOCOMO_MINI: list[dict[str, Any]] = [
         "id": "fq_01",
         "category": "factual",
         "episodes": [
-            {"text": "The team uses PostgreSQL as the primary database.", "ts": "2024-01-10T09:00:00Z"},
-            {"text": "The backend is written in Python with FastAPI.", "ts": "2024-01-10T09:05:00Z"},
+            {
+                "text": "The team uses PostgreSQL as the primary database.",
+                "ts": "2024-01-10T09:00:00Z",
+            },
+            {
+                "text": "The backend is written in Python with FastAPI.",
+                "ts": "2024-01-10T09:05:00Z",
+            },
         ],
         "question": "What framework does the backend use?",
         "answer": "FastAPI",
@@ -186,7 +242,10 @@ LOCOMO_MINI: list[dict[str, Any]] = [
         "id": "fq_02",
         "category": "factual",
         "episodes": [
-            {"text": "We use NATS for message brokering between micro-services.", "ts": "2024-04-01T10:00:00Z"},
+            {
+                "text": "We use NATS for message brokering between micro-services.",
+                "ts": "2024-04-01T10:00:00Z",
+            },
         ],
         "question": "What message broker is used?",
         "answer": "NATS",
@@ -196,8 +255,14 @@ LOCOMO_MINI: list[dict[str, Any]] = [
         "id": "fq_03",
         "category": "factual",
         "episodes": [
-            {"text": "The deployment pipeline uses GitHub Actions for CI/CD.", "ts": "2024-03-01T08:00:00Z"},
-            {"text": "Docker images are stored in GitHub Container Registry.", "ts": "2024-03-01T08:05:00Z"},
+            {
+                "text": "The deployment pipeline uses GitHub Actions for CI/CD.",
+                "ts": "2024-03-01T08:00:00Z",
+            },
+            {
+                "text": "Docker images are stored in GitHub Container Registry.",
+                "ts": "2024-03-01T08:05:00Z",
+            },
         ],
         "question": "What CI/CD system is used for deployments?",
         "answer": "GitHub Actions",
@@ -207,9 +272,18 @@ LOCOMO_MINI: list[dict[str, Any]] = [
         "id": "mq_01",
         "category": "multi-hop",
         "episodes": [
-            {"text": "Carol manages the infrastructure team.", "ts": "2024-01-05T08:00:00Z"},
-            {"text": "The infrastructure team is responsible for the Kubernetes cluster.", "ts": "2024-01-05T08:10:00Z"},
-            {"text": "The Kubernetes cluster runs on AWS EKS.", "ts": "2024-01-05T08:20:00Z"},
+            {
+                "text": "Carol manages the infrastructure team.",
+                "ts": "2024-01-05T08:00:00Z",
+            },
+            {
+                "text": "The infrastructure team is responsible for the Kubernetes cluster.",
+                "ts": "2024-01-05T08:10:00Z",
+            },
+            {
+                "text": "The Kubernetes cluster runs on AWS EKS.",
+                "ts": "2024-01-05T08:20:00Z",
+            },
         ],
         "question": "Who manages the team that runs the Kubernetes cluster?",
         "answer": "Carol",
@@ -219,9 +293,18 @@ LOCOMO_MINI: list[dict[str, Any]] = [
         "id": "mq_02",
         "category": "multi-hop",
         "episodes": [
-            {"text": "Dave is the tech lead of the data platform team.", "ts": "2024-02-01T09:00:00Z"},
-            {"text": "The data platform team owns the recommendation engine.", "ts": "2024-02-01T09:10:00Z"},
-            {"text": "The recommendation engine serves 2 million requests per day.", "ts": "2024-02-01T09:20:00Z"},
+            {
+                "text": "Dave is the tech lead of the data platform team.",
+                "ts": "2024-02-01T09:00:00Z",
+            },
+            {
+                "text": "The data platform team owns the recommendation engine.",
+                "ts": "2024-02-01T09:10:00Z",
+            },
+            {
+                "text": "The recommendation engine serves 2 million requests per day.",
+                "ts": "2024-02-01T09:20:00Z",
+            },
         ],
         "question": "Who leads the team that owns the system serving 2 million daily requests?",
         "answer": "Dave",
@@ -231,9 +314,18 @@ LOCOMO_MINI: list[dict[str, Any]] = [
         "id": "mq_03",
         "category": "multi-hop",
         "episodes": [
-            {"text": "Eve designed the authentication service.", "ts": "2024-03-10T10:00:00Z"},
-            {"text": "The authentication service uses JWT tokens.", "ts": "2024-03-10T10:05:00Z"},
-            {"text": "JWT tokens are validated using RS256 algorithm.", "ts": "2024-03-10T10:10:00Z"},
+            {
+                "text": "Eve designed the authentication service.",
+                "ts": "2024-03-10T10:00:00Z",
+            },
+            {
+                "text": "The authentication service uses JWT tokens.",
+                "ts": "2024-03-10T10:05:00Z",
+            },
+            {
+                "text": "JWT tokens are validated using RS256 algorithm.",
+                "ts": "2024-03-10T10:10:00Z",
+            },
         ],
         "question": "What algorithm is used by the auth service Eve designed?",
         "answer": "RS256",
@@ -328,7 +420,7 @@ async def run_benchmark(dataset: list[dict[str, Any]]) -> BenchmarkSuite:
 
 def print_results(suite: BenchmarkSuite, *, markdown: bool = False) -> None:
     """Print a formatted results table.
-    
+
     Args:
         suite: Benchmark results to display.
         markdown: If True, output GitHub-flavoured markdown tables.
@@ -361,7 +453,11 @@ def print_results(suite: BenchmarkSuite, *, markdown: bool = False) -> None:
     t = cat_acc.get("temporal", 0)
     m = cat_acc.get("multi-hop", 0)
     p = cat_acc.get("point-in-time", 0)
-    print(f"  │ Membread       │  {t:5.1f}%   │  {m:5.1f}%   │   {p:5.1f}%      │  {suite.mean_latency_ms:7.1f}    │")
+    print(
+        f"  │ Membread       │  {t:5.1f}%   │"
+        f"  {m:5.1f}%   │   {p:5.1f}%      │"
+        f"  {suite.mean_latency_ms:7.1f}    │"
+    )
     print("  │ Mem0 (baseline)  │  ~42.0%   │  ~38.0%   │   ~35.0%      │  ~350       │")
     print("  │ SuperMemory      │  ~48.0%   │  ~45.0%   │   ~40.0%      │  ~280       │")
     print("  │ Zep/Graphiti     │  ~61.0%   │  ~58.0%   │   ~55.0%      │  ~180       │")
@@ -395,7 +491,10 @@ def _print_markdown(suite: BenchmarkSuite, cat_acc: dict[str, float]) -> None:
     print("\n### Comparison\n")
     print("| System | Temporal | Multi-hop | Point-in-time | Latency |")
     print("|---|---|---|---|---|")
-    print(f"| **Membread** | **{t:.1f}%** | **{m:.1f}%** | **{p:.1f}%** | **{suite.mean_latency_ms:.0f}ms** |")
+    print(
+        f"| **Membread** | **{t:.1f}%** | **{m:.1f}%**"
+        f" | **{p:.1f}%** | **{suite.mean_latency_ms:.0f}ms** |"
+    )
     print("| Mem0 | ~42% | ~38% | ~35% | ~350ms |")
     print("| SuperMemory | ~48% | ~45% | ~40% | ~280ms |")
     print("| Zep/Graphiti | ~61% | ~58% | ~55% | ~180ms |")

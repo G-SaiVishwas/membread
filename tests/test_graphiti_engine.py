@@ -9,8 +9,8 @@ are mocked so the test suite runs in CI with zero external dependencies.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import UTC, datetime
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -21,7 +21,6 @@ from src.memory_engine.engines.graphiti_engine import (
     _build_embedder,
     _build_llm_client,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -145,7 +144,7 @@ class TestAddEpisode:
         ge.EpisodeType = ep_mock
 
         try:
-            ts = datetime(2024, 6, 1, tzinfo=timezone.utc)
+            ts = datetime(2024, 6, 1, tzinfo=UTC)
             await engine.add_episode(
                 text="Bob switched to Rust",
                 group_id="t1",
@@ -170,7 +169,7 @@ class _FakeSearchResult:
     def __init__(self, fact, created_at=None, uuid_=None):
         self.fact = fact
         self.name = fact
-        self.created_at = created_at or datetime.now(timezone.utc)
+        self.created_at = created_at or datetime.now(UTC)
         self.reference_time = self.created_at
         self.uuid = uuid_ or uuid.uuid4()
         self.source_description = "test"
@@ -209,9 +208,9 @@ class TestSearch:
         engine = GraphitiEngine(_make_config())
         await engine.initialize()
 
-        t1 = datetime(2024, 1, 1, tzinfo=timezone.utc)
-        t2 = datetime(2024, 6, 1, tzinfo=timezone.utc)
-        t3 = datetime(2024, 12, 1, tzinfo=timezone.utc)
+        t1 = datetime(2024, 1, 1, tzinfo=UTC)
+        t2 = datetime(2024, 6, 1, tzinfo=UTC)
+        t3 = datetime(2024, 12, 1, tzinfo=UTC)
 
         mock_graphiti = AsyncMock()
         mock_graphiti.search = AsyncMock(return_value=[
@@ -223,8 +222,8 @@ class TestSearch:
 
         hits = await engine.search(
             "all", "g1",
-            time_range=(datetime(2024, 5, 1, tzinfo=timezone.utc),
-                        datetime(2024, 7, 1, tzinfo=timezone.utc)),
+            time_range=(datetime(2024, 5, 1, tzinfo=UTC),
+                        datetime(2024, 7, 1, tzinfo=UTC)),
         )
 
         assert len(hits) == 1
@@ -243,7 +242,7 @@ class TestTemporalSearch:
         await engine.initialize()
 
         results = await engine.search_temporal(
-            "q", "g1", as_of=datetime.now(timezone.utc)
+            "q", "g1", as_of=datetime.now(UTC)
         )
         assert results == []
 
@@ -252,8 +251,8 @@ class TestTemporalSearch:
         engine = GraphitiEngine(_make_config())
         await engine.initialize()
 
-        t_early = datetime(2024, 3, 1, tzinfo=timezone.utc)
-        t_late = datetime(2024, 9, 1, tzinfo=timezone.utc)
+        t_early = datetime(2024, 3, 1, tzinfo=UTC)
+        t_late = datetime(2024, 9, 1, tzinfo=UTC)
 
         mock_graphiti = AsyncMock()
         mock_graphiti.search = AsyncMock(return_value=[
@@ -262,7 +261,7 @@ class TestTemporalSearch:
         ])
         engine._graphiti = mock_graphiti
 
-        as_of = datetime(2024, 6, 1, tzinfo=timezone.utc)
+        as_of = datetime(2024, 6, 1, tzinfo=UTC)
         hits = await engine.search_temporal("q", "g1", as_of=as_of)
 
         # Only the old fact should survive the ingestion-time filter
@@ -289,8 +288,8 @@ class TestEntityHistory:
 
         mock_graphiti = AsyncMock()
         mock_graphiti.search = AsyncMock(return_value=[
-            _FakeSearchResult("Alice v1", created_at=datetime(2024, 1, 1, tzinfo=timezone.utc)),
-            _FakeSearchResult("Alice v2", created_at=datetime(2024, 6, 1, tzinfo=timezone.utc)),
+            _FakeSearchResult("Alice v1", created_at=datetime(2024, 1, 1, tzinfo=UTC)),
+            _FakeSearchResult("Alice v2", created_at=datetime(2024, 6, 1, tzinfo=UTC)),
         ])
         engine._graphiti = mock_graphiti
 

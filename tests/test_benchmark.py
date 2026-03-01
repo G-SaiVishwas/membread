@@ -15,15 +15,13 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from benchmarks.run import (
+from benchmarks.run import (  # noqa: E402
     LOCOMO_MINI,
-    BenchmarkQuestion,
     BenchmarkResult,
     BenchmarkSuite,
     load_dataset,
     simple_match,
 )
-
 
 # ───────────────────────────────────────────────────────────────────
 # simple_match

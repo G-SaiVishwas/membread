@@ -9,23 +9,22 @@ flow — all without a real database.
 from __future__ import annotations
 
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
 from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.api.server import create_app
-from src.auth.jwt_authenticator import JWTAuthenticator
-from src.memory_engine.engines.graphiti_engine import (
+from src.api.server import create_app  # noqa: E402
+from src.auth.jwt_authenticator import JWTAuthenticator  # noqa: E402
+from src.memory_engine.engines.graphiti_engine import (  # noqa: E402
     EntityVersion,
     TemporalSearchResult,
 )
-from src.models import RecallResult, StoreResult
-
+from src.models import RecallResult, StoreResult  # noqa: E402
 
 # ───────────────────────────────────────────────────────────────────
 # Fixtures
@@ -76,8 +75,8 @@ def mock_engine():
             id="hit-1",
             text="Alice works at Google",
             score=0.95,
-            event_time=datetime(2024, 1, 15, tzinfo=timezone.utc),
-            ingestion_time=datetime(2024, 1, 16, tzinfo=timezone.utc),
+            event_time=datetime(2024, 1, 15, tzinfo=UTC),
+            ingestion_time=datetime(2024, 1, 16, tzinfo=UTC),
             source="api",
         ),
     ])
@@ -86,7 +85,7 @@ def mock_engine():
             entity_id="ent-1",
             name="Alice",
             properties={"employer": "Google"},
-            valid_from=datetime(2024, 1, 15, tzinfo=timezone.utc),
+            valid_from=datetime(2024, 1, 15, tzinfo=UTC),
         ),
     ])
     engine.get_graph_data = AsyncMock(return_value={
